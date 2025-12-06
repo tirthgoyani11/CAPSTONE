@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI CV Screener</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <h1>AI CV Screener</h1>
+            <p>Automated Ranking & Screening System</p>
+        </header>
+
+        <main>
+            <div class="grid-layout">
+                <section class="config-panel card">
+                    <h2>Configuration</h2>
+                    <form id="uploadForm">
+                        <div class="form-group">
+                            <label for="jd">Upload Job Description (PDF/DOCX/TXT)</label>
+                            <input type="file" id="jd" name="jd" accept=".pdf,.docx,.txt" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="cvs">Upload CVs (Multiple)</label>
+                            <input type="file" id="cvs" name="cvs" accept=".pdf,.docx,.txt" multiple required>
+                        </div>
+
+                        <div class="weights-config">
+                            <h3>Scoring Weights</h3>
+                            <div class="slider-group">
+                                <label>Overall Semantic Match: <span id="val_overall">0.5</span></label>
+                                <input type="range" name="weight_overall" min="0" max="1" step="0.1" value="0.5" oninput="document.getElementById('val_overall').innerText = this.value">
+                            </div>
+                            <div class="slider-group">
+                                <label>Skills Focus: <span id="val_skills">0.3</span></label>
+                                <input type="range" name="weight_skills" min="0" max="1" step="0.1" value="0.3" oninput="document.getElementById('val_skills').innerText = this.value">
+                            </div>
+                            <div class="slider-group">
+                                <label>Experience Focus: <span id="val_exp">0.2</span></label>
+                                <input type="range" name="weight_experience" min="0" max="1" step="0.1" value="0.2" oninput="document.getElementById('val_exp').innerText = this.value">
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn-primary">Analyze & Rank</button>
+                    </form>
+                </section>
+
+                <section class="results-panel">
+                    <h2>Ranking Results</h2>
+                    <div id="loader" class="hidden">Processing...</div>
+                    <div id="resultsList" class="results-list">
+                        <!-- Results will appear here -->
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <script src="/static/script.js"></script>
+</body>
+</html>

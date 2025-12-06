@@ -1,0 +1,52 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="dashboard-header">
+    <div class="brand" style="margin-bottom: 0;">
+        <h1>Talent Pool</h1>
+    </div>
+    <form class="search-bar" method="GET" action="/talent_pool" style="display:flex; gap:1rem;">
+        <input type="text" name="q" placeholder="Search by name or keyword..." value="{{ query }}"
+            style="width: 350px;">
+        <button type="submit" class="btn-primary"><i class="fa-solid fa-search"></i></button>
+    </form>
+</div>
+
+<div class="table-container">
+    <table>
+        <thead>
+            <tr>
+                <th>Candidate Name</th>
+                <th>Score</th>
+                <th>Skills Matched</th>
+                <th>Date Added</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for cand in candidates %}
+            <tr onclick="viewCandidate({{ cand.id }})" style="cursor: pointer;">
+                <td>
+                    <div class="cand-name" style="font-weight: 600; color: var(--text-primary);">{{ cand.filename }}
+                    </div>
+                </td>
+                <td>
+                    <span class="status-pill {% if cand.total_score > 70 %}open{% else %}{% endif %}">
+                        {{ cand.total_score|round|int }}%
+                    </span>
+                </td>
+                <td>{{ cand.skills_score|round }}%</td>
+                <td>{{ cand.created_at[:10] }}</td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="4" style="text-align:center; padding: 3rem; color: var(--text-muted);">
+                    <i class="fa-solid fa-user-slash" style="font-size: 2rem; margin-bottom: 1rem; display: block;"></i>
+                    No candidates found matching your query.
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% endblock %}

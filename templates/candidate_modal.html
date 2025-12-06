@@ -1,0 +1,149 @@
+<div class="modal-header">
+    <div style="display: flex; align-items: center; gap: 1rem;">
+        <div class="score-circle"
+            style="--p:{{ candidate.total_score }}; --c:#6366f1; width: 50px; height: 50px; font-size: 1rem;">
+            <span>{{ candidate.total_score|round|int }}%</span>
+        </div>
+        <div>
+            <h2 style="margin:0; font-size: 1.25rem;">{{ candidate.filename }}</h2>
+            <p style="margin:0; color: var(--text-muted); font-size: 0.85rem;">AI Analysis Report</p>
+        </div>
+    </div>
+    <button onclick="closeModal()" class="btn-icon" style="font-size: 1.5rem;">&times;</button>
+</div>
+
+<div class="modal-body">
+    <div class="modal-grid" style="display: grid; grid-template-columns: 2fr 1fr; gap: 2rem;">
+        <!-- Left Column: Skills & Questions -->
+        <div class="analysis-col">
+            <!-- Skills -->
+            <div style="margin-bottom: 2rem; background: rgba(0,0,0,0.1); padding: 1rem; border-radius: var(--radius);">
+                <div style="margin-bottom: 1rem;">
+                    <h4
+                        style="font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted); margin: 0 0 0.5rem 0;">
+                        Matched Skills</h4>
+                    <div>
+                        {% for skill in analysis.matching %}
+                        <span class="tag match">{{ skill }}</span>
+                        {% else %}
+                        <span style="color: var(--text-muted); font-size: 0.9rem;">No specific skills matched.</span>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div>
+                    <h4
+                        style="font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted); margin: 0 0 0.5rem 0;">
+                        Missing Skills</h4>
+                    <div>
+                        {% for skill in analysis.missing %}
+                        <span class="tag missing">{{ skill }}</span>
+                        {% else %}
+                        <span style="color: var(--text-muted); font-size: 0.9rem;">No key skills missing.</span>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Questions -->
+            <div class="interview-guide">
+                <h3 style="margin: 0 0 1rem 0; font-size: 1.1rem; color: var(--text-primary);">Suggested Interview
+                    Questions</h3>
+                <ul class="question-list" style="padding: 0; list-style: none;">
+                    {% for q in analysis.questions %}
+                    <li
+                        style="display: flex; align-items: flex-start; gap: 0.75rem; margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border);">
+                        <i class="fa-solid fa-circle-question" style="color: #6366f1; margin-top: 0.2rem;"></i>
+                        <span style="color: var(--text-secondary); font-size: 0.95rem; line-height: 1.5;">{{ q }}</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+
+        <!-- Right Column: Charts & Stats -->
+        <div class="chart-col">
+            <!-- Radar Chart Card -->
+            <div class="stat-card" style="display: block; padding: 1rem; height: 300px; margin-bottom: 1rem;">
+                <h4 style="text-align: center; margin-bottom: 1rem;">Profile Radar</h4>
+                <div style="height: 240px; position: relative;">
+                    <canvas id="skillsRadar"></canvas>
+                </div>
+            </div>
+
+            <!-- Quick Stats Card -->
+            <div class="stat-card" style="display: block; padding: 1.5rem;">
+                <h4 style="margin-bottom: 1rem; font-size: 1rem;">Category Scores</h4>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 0.75rem;">
+                    <span style="color: var(--text-muted);">Experience</span>
+                    <span style="font-weight: 600;">{{ candidate.experience_score|round }}%</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 0.75rem;">
+                    <span style="color: var(--text-muted);">Skills</span>
+                    <span style="font-weight: 600;">{{ candidate.skills_score|round }}%</span>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                    <span style="color: var(--text-muted);">Semantic Match</span>
+                    <span style="font-weight: 600;">{{ candidate.semantic_score|round }}%</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Initialize Radar Chart
+    // Ensure we destroy old chart if it exists to avoid overlaps on re-open (though modal content is replaced, safety first)
+    // Actually, script runs on insertion.
+
+    setTimeout(() => {
+        var canvas = document.getElementById('skillsRadar');
+        if (canvas) {
+            var ctx = canvas.getContext('2d');
+            new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: ['Semantic', 'Skills', 'Experience', 'Relevance', 'Impact'],
+                    datasets: [{
+                        label: 'Candidate',
+                        data: [
+                            {{ candidate.semantic_score }},
+                    {{ candidate.skills_score }},
+                            {{ candidate.experience_score }},
+        { { (candidate.total_score * 0.9) | round } },
+        { { (candidate.total_score * 0.85) | round } }
+                        ],
+        backgroundColor: 'rgba(99, 102, 241, 0.2)',
+            borderColor: '#6366f1',
+                pointBackgroundColor: '#fff',
+                    borderWidth: 2
+    },
+        {
+            label: 'Target',
+            data: [100, 100, 100, 100, 100],
+            backgroundColor: 'transparent',
+            borderColor: 'rgba(255, 255, 255, 0.1)',
+            borderDash: [5, 5],
+            pointRadius: 0
+        }]
+                },
+        options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            r: {
+                angleLines: { color: 'rgba(255, 255, 255, 0.1)' },
+                grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                pointLabels: { color: '#cbd5e1', font: { size: 11 } },
+                ticks: { display: false, backdropColor: 'transparent' },
+                suggestedMin: 0,
+                suggestedMax: 100
+            }
+        },
+        plugins: {
+            legend: { display: false }
+        }
+    }
+            });
+        }
+    }, 100); // Small delay to ensure DOM is ready
+</script>

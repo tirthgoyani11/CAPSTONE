@@ -1,0 +1,61 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="dashboard-header">
+    <h1>Analytics Overview</h1>
+</div>
+
+<div class="stats-grid" style="grid-template-columns: 1fr 1fr;">
+    <div class="glass-card" style="height: 400px; padding: 1.5rem;">
+        <h3 style="margin-bottom: 1.5rem;">Candidates per Job</h3>
+        <canvas id="jobChart"></canvas>
+    </div>
+    <div class="glass-card" style="height: 400px; padding: 1.5rem;">
+        <h3 style="margin-bottom: 1.5rem;">Score Distribution</h3>
+        <canvas id="scoreChart"></canvas>
+    </div>
+</div>
+
+<script>
+    // Job Distribution Chart
+    new Chart(document.getElementById('jobChart'), {
+        type: 'bar',
+        data: {
+            labels: {{ job_labels | tojson }},
+        datasets: [{
+            label: 'Candidates',
+            data: {{ job_counts | tojson }},
+        backgroundColor: '#6366f1'
+            }]
+        },
+        options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.1)' } },
+            x: { grid: { display: false } }
+        },
+        plugins: { legend: { display: false } }
+    }
+    });
+
+    // Score Distribution Chart
+    new Chart(document.getElementById('scoreChart'), {
+        type: 'doughnut',
+        data: {
+            labels: ['Low (<50%)', 'Medium (50-79%)', 'High (80%+)'],
+            datasets: [{
+                data: {{ score_buckets | tojson }},
+    },
+        backgroundColor: ['#ef4444', '#f59e0b', '#10b981'],
+        borderWidth: 0
+            }]
+        },
+        options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8' } } }
+    }
+    });
+</script>
+{% endblock %}

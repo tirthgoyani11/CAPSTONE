@@ -1,0 +1,28 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="dashboard-header">
+    <h1>Settings</h1>
+</div>
+
+<div class="card" style="max-width: 600px;">
+    <h2>System Config</h2>
+    <p style="color: var(--text-muted); margin-bottom: 2rem;">Manage your application data and preferences.</p>
+
+    <div class="setting-item">
+        <h3>Reset Database</h3>
+        <p class="text-red">Warning: This will delete all Jobs and Candidates permanently.</p>
+        <form action="/settings/reset" method="POST"
+            onsubmit="return confirm('EXTREME DANGER: Type yes to confirm delete all data')">
+            <input type="hidden" name="confirm" value="yes">
+            <button type="submit" class="btn-primary" style="background-color: #ef4444;">Clear All Data</button>
+        </form>
+    </div>
+</div>
+
+<div class="card" style="max-width: 600px; margin-top: 2rem;">
+    <h2>About</h2>
+    <p><strong>NexGen ATS v2.0</strong> (Corporate Edition)</p>
+    <p>Powered by <code>sentence-transformers/all-MiniLM-L6-v2</code></p>
+</div>
+{% endblock %}

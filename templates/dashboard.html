@@ -1,0 +1,53 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<h2 style="margin-bottom: 1.5rem;">Job Openings</h2>
+
+<div class="table-container">
+    <table>
+        <thead>
+            <tr>
+                <th>Job Title</th>
+                <th>Created</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for job in jobs %}
+            <tr>
+                <td style="font-weight: 500; font-size: 1.1rem;">{{ job.title }}</td>
+                <td style="color: var(--text-muted);">{{ job.created_at[:10] }}</td>
+                <td><span class="status-pill open">ACTIVE</span></td>
+                <td class="actions-cell">
+                    <a href="/jobs/{{ job.id }}" class="btn-secondary btn-sm"><i class="fa-solid fa-eye"></i> View</a>
+                    <form action="/jobs/{{ job.id }}/delete" method="POST" style="display:inline;"
+                        onsubmit="return confirm('Are you sure? This will delete the job and all candidates.');">
+                        <button type="submit" class="btn-danger"><i class="fa-solid fa-trash"></i></button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Create Job Modal Trigger or Inline Form -->
+<div class="glass-card" style="margin-top: 3rem;">
+    <h3 style="margin-bottom: 1.5rem;">Create New Position</h3>
+    <form action="/jobs/create" method="POST" enctype="multipart/form-data">
+        <div class="form-group">
+            <input type="text" name="title" placeholder="Job Title (e.g. Senior Product Designer)" required>
+        </div>
+        <div class="form-group">
+            <label style="display:block; margin-bottom:0.5rem; color:var(--text-muted); font-size:0.9rem;">Upload
+                Description (PDF/Docs)</label>
+            <input type="file" name="desc_file" accept=".pdf,.docx,.txt" style="padding: 0.5rem;">
+        </div>
+        <button type="submit" class="btn-primary">
+            <i class="fa-solid fa-plus"></i> Create Job
+        </button>
+    </form>
+</div>
+</div>
+{% endblock %}
