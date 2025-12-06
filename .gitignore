@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+venv/
+.env
+db.sqlite3
+*.db
+uploads/
+gcetv23/
+.DS_Store

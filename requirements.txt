@@ -5,3 +5,4 @@ pdfplumber
 numpy
 scikit-learn
 python-docx
+gunicorn
