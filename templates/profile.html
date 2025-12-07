@@ -1,0 +1,106 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<div class="dashboard-header" style="margin-bottom: 2rem;">
+    <h1
+        style="background: linear-gradient(135deg, var(--primary) 0%, #818cf8 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 0.5rem;">
+        Your Candidate Profile
+    </h1>
+    <p style="color: var(--text-secondary);">Manage your Master Resume for One-Click features.</p>
+</div>
+
+<div class="grid-container" style="grid-template-columns: 1fr 1fr; gap: 2rem;">
+
+    <!-- Upload Section -->
+    <div class="glass-card">
+        <h3 style="margin-bottom: 1.5rem;">Update Master Resume</h3>
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem;">
+            Uploading a new resume will update your One-Click Apply profile.
+        </p>
+
+        <form action="/profile" method="POST" enctype="multipart/form-data">
+            <div style="border: 2px dashed var(--border); border-radius: var(--radius); padding: 3rem; text-align: center; margin-bottom: 1.5rem; position: relative; transition: all 0.2s;"
+                onmouseover="this.style.borderColor='var(--primary)'; this.style.background='rgba(99,102,241,0.05)'"
+                onmouseout="this.style.borderColor='var(--border)'; this.style.background='transparent'">
+
+                <i class="fa-solid fa-cloud-arrow-up"
+                    style="font-size: 3rem; color: var(--text-muted); margin-bottom: 1rem;"></i>
+                <h4 style="margin-bottom: 0.5rem;">Drag & Drop or Click</h4>
+                <p style="color: var(--text-muted); font-size: 0.8rem;">PDF, DOCX, TXT supported</p>
+                <input type="file" name="resume" accept=".pdf,.docx,.txt" required
+                    style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer;">
+            </div>
+
+            <button type="submit" class="btn-primary" style="width: 100%; justify-content: center;">
+                <i class="fa-solid fa-save"></i> Save Profile
+            </button>
+        </form>
+    </div>
+
+    <!-- Current Profile Status -->
+    <div class="glass-card" style="border-left: 4px solid var(--success);">
+        <h3 style="margin-bottom: 1.5rem;">Current Status</h3>
+
+        {% if user.resume_path %}
+        <div
+            style="padding: 1.5rem; background: rgba(16, 185, 129, 0.1); border-radius: var(--radius); margin-bottom: 2rem;">
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <div
+                    style="width: 48px; height: 48px; background: var(--success); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
+                    <i class="fa-solid fa-check"></i>
+                </div>
+                <div>
+                    <h4 style="margin: 0; color: var(--success);">Profile Active</h4>
+                    <p style="margin: 0; font-size: 0.85rem; opacity: 0.8;">Ready for One-Click Apply</p>
+                </div>
+            </div>
+        </div>
+
+        <form action="/profile/update" method="POST" class="nested-card" style="padding: 1.5rem;">
+            <div style="margin-bottom: 1.5rem;">
+                <label
+                    style="display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem;">Resumed
+                    File</label>
+                <div style="display: flex; align-items: center; gap: 0.5rem; font-weight: 500;">
+                    <i class="fa-solid fa-file-pdf text-red"></i> {{ user.resume_path }}
+                </div>
+            </div>
+
+            <div style="margin-bottom: 1.5rem;">
+                <label
+                    style="display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem;">Detected
+                    Skills (Edit to fix)</label>
+                <textarea name="skills" rows="4"
+                    style="width: 100%; padding: 0.8rem; background: var(--bg-dashboard); border: 1px solid var(--border); color: var(--text-primary); border-radius: var(--radius);">{{ user.skills | replace('"', '') | replace('[', '') | replace(']', '') }}</textarea>
+                <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">Comma separated (e.g.
+                    Python, Java, SQL)</p>
+            </div>
+
+            <div style="margin-bottom: 1.5rem;">
+                <label
+                    style="display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem;">Years
+                    of Experience</label>
+                <input type="text" name="experience" value="{{ user.experience }}"
+                    style="width: 100%; padding: 0.8rem; background: var(--bg-dashboard); border: 1px solid var(--border); color: var(--text-primary); border-radius: var(--radius);">
+            </div>
+
+            <button type="submit" class="btn-primary" style="width: 100%;">
+                <i class="fa-solid fa-pen-to-square"></i> Update Details
+            </button>
+        </form>
+
+        {% else %}
+        <div style="text-align: center; padding: 3rem 0;">
+            <div
+                style="width: 64px; height: 64px; background: rgba(0,0,0,0.05); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem auto; color: var(--text-muted);">
+                <i class="fa-solid fa-user-slash" style="font-size: 1.5rem;"></i>
+            </div>
+            <h4 style="color: var(--text-muted);">Incomplete Profile</h4>
+            <p style="font-size: 0.9rem; color: var(--text-muted); max-width: 250px; margin: 0 auto;">
+                Upload your resume to unlock One-Click Apply features.
+            </p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

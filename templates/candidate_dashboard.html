@@ -1,0 +1,116 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<div class="dashboard-header" style="margin-bottom: 2rem;">
+    <h1
+        style="background: linear-gradient(135deg, var(--primary) 0%, #818cf8 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 0.5rem;">
+        Welcome, {{ current_user.name }}!
+    </h1>
+    <p style="color: var(--text-secondary);">Managing your career journey, all in one place.</p>
+</div>
+<div style="margin-bottom: 2rem;">
+    <a href="/jobs" class="btn-primary">
+        <i class="fa-solid fa-briefcase"></i> Browse Jobs
+    </a>
+</div>
+
+<div class="grid-container">
+    <!-- Stats Row -->
+    <div style="grid-column: span 3; display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem;">
+        <div class="glass-card stat-card">
+            <div>
+                <div class="metric-value">0</div>
+                <div class="metric-label">Applications Submitted</div>
+            </div>
+            <div class="icon-box" style="background: rgba(99, 102, 241, 0.2); color: #818cf8;">
+                <i class="fa-solid fa-paper-plane"></i>
+            </div>
+        </div>
+        <div class="glass-card stat-card">
+            <div>
+                <div class="metric-value">0</div>
+                <div class="metric-label">Interviews Scheduled</div>
+            </div>
+            <div class="icon-box" style="background: rgba(16, 185, 129, 0.2); color: #34d399;">
+                <i class="fa-solid fa-calendar-check"></i>
+            </div>
+        </div>
+        <div class="glass-card stat-card">
+            <div>
+                <div class="metric-value">0</div>
+                <div class="metric-label">Profile Views</div>
+            </div>
+            <div class="icon-box" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24;">
+                <i class="fa-solid fa-eye"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Application List -->
+    <div style="grid-column: span 3;">
+        <div class="glass-card">
+            <h3 style="margin-bottom: 1.5rem; font-size: 1.1rem; color: var(--text-primary);">Detailed Application
+                Status</h3>
+
+            {% if applications %}
+
+            <div class="table-container"
+                style="margin-top: 0; box-shadow: none; border: none; background: transparent;">
+                <table style="width: 100%; border-collapse: collapse; color: var(--text-muted); font-size: 0.9rem;">
+                    <thead>
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.1); text-align: left;">
+                            <th style="padding: 1rem;">Job Role</th>
+                            <th style="padding: 1rem;">Status</th>
+                            <th style="padding: 1rem;">Applied Date</th>
+                            <th style="padding: 1rem;">Match Score</th>
+                            <th style="padding: 1rem;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for app in applications %}
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                            <td style="padding: 1rem; color: var(--text-primary); font-weight: 500;">
+                                {{ app.job_title }}
+                            </td>
+                            <td style="padding: 1rem;">
+                                {% set status_color = 'rgba(168, 85, 247, 0.1)' if app.status == 'Interview' else
+                                'rgba(16, 185, 129, 0.1)' if app.status == 'Offer' else 'rgba(0, 0, 0, 0.05)' %}
+                                {% set text_color = '#a855f7' if app.status == 'Interview' else '#10b981' if app.status
+                                == 'Offer' else 'var(--text-secondary)' %}
+                                <span
+                                    style="background: {{ status_color }}; color: {{ text_color }}; padding: 0.25rem 0.75rem; border-radius: 999px; font-size: 0.75rem; border: 1px solid {{ status_color }}; font-weight: 600; text-transform: uppercase;">
+                                    {{ app.status if app.status else 'Applied' }}
+                                </span>
+                            </td>
+                            <td style="padding: 1rem;">
+                                {{ app.created_at[:10] }}
+                            </td>
+                            <td style="padding: 1rem;">
+                                <span
+                                    style="color: {{ '#34d399' if app.total_score > 70 else '#facc15' if app.total_score > 40 else '#f87171' }}; font-weight: 600;">
+                                    {{ app.total_score|round(1) }}%
+                                </span>
+                            </td>
+                            <td style="padding: 1rem;">
+                                <button class="btn-primary" onclick="viewCandidate({{ app.id }})"
+                                    style="font-size: 0.8rem; padding: 0.4rem 0.8rem;">
+                                    View Analysis
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div style="text-align: center; padding: 3rem 0; color: var(--text-muted);">
+                <i class="fa-solid fa-folder-open" style="font-size: 2rem; margin-bottom: 1rem; opacity: 0.5;"></i>
+                <p>No active applications found.</p>
+                <a href="{{ url_for('core.job_board') }}" class="btn-primary"
+                    style="margin-top: 1rem; display: inline-flex;">Find a Job</a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -20,6 +20,7 @@ def init_db():
     c.execute('''CREATE TABLE IF NOT EXISTS candidates (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     job_id INTEGER,
+                    name TEXT,
                     filename TEXT,
                     semantic_score REAL,
                     skills_score REAL,
@@ -30,9 +31,21 @@ def init_db():
                     full_text TEXT,
                     missing_skills TEXT,
                     interview_questions TEXT,
+                    user_id INTEGER, -- Link to User table
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    FOREIGN KEY(job_id) REFERENCES jobs(id)
+                    FOREIGN KEY(job_id) REFERENCES jobs(id),
+                    FOREIGN KEY(user_id) REFERENCES users(id)
                 )''')
+    # Users Table
+    c.execute('''CREATE TABLE IF NOT EXISTS users (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT NOT NULL,
+                    email TEXT UNIQUE NOT NULL,
+                    password_hash TEXT NOT NULL,
+                    role TEXT DEFAULT 'candidate', -- recruiter, candidate, admin
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )''')
+    
     conn.commit()
     conn.close()
 
@@ -40,3 +53,56 @@ def get_db_connection():
     conn = sqlite3.connect(DB_NAME)
     conn.row_factory = sqlite3.Row
     return conn
+
+# User Class for Flask-Login
+from flask_login import UserMixin
+import werkzeug.security
+
+class User(UserMixin):
+    def __init__(self, id, name, email, role, password_hash, resume_path=None, skills=None, experience=None, education=None, profile_summary=None):
+        self.id = id
+        self.name = name
+        self.email = email
+        self.role = role
+        self.password_hash = password_hash
+        self.resume_path = resume_path
+        self.skills = skills
+        self.experience = experience
+        self.education = education
+        self.profile_summary = profile_summary
+
+    @staticmethod
+    def get(user_id):
+        conn = get_db_connection()
+        user = conn.execute('SELECT * FROM users WHERE id = ?', (user_id,)).fetchone()
+        conn.close()
+        if not user: return None
+        return User(user['id'], user['name'], user['email'], user['role'], user['password_hash'], 
+                   user['resume_path'], user['skills'], user['experience'], user['education'], user['profile_summary'])
+
+    @staticmethod
+    def get_by_email(email):
+        conn = get_db_connection()
+        user = conn.execute('SELECT * FROM users WHERE email = ?', (email,)).fetchone()
+        conn.close()
+        if not user: return None
+        return User(user['id'], user['name'], user['email'], user['role'], user['password_hash'],
+                   user['resume_path'], user['skills'], user['experience'], user['education'], user['profile_summary'])
+        
+    @staticmethod
+    def create(name, email, password, role='candidate'):
+        hashed = werkzeug.security.generate_password_hash(password)
+        conn = get_db_connection()
+        try:
+            conn.execute('INSERT INTO users (name, email, password_hash, role) VALUES (?, ?, ?, ?)', 
+                         (name, email, hashed, role))
+            conn.commit()
+            return True
+        except sqlite3.IntegrityError:
+            return False
+        finally:
+            conn.close()
+
+    def check_password(self, password):
+        return werkzeug.security.check_password_hash(self.password_hash, password)
+

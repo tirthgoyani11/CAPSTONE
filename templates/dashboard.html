@@ -1,53 +1,112 @@
 {% extends "layout.html" %}
 
 {% block content %}
-<h2 style="margin-bottom: 1.5rem;">Job Openings</h2>
 
-<div class="table-container">
-    <table>
-        <thead>
-            <tr>
-                <th>Job Title</th>
-                <th>Created</th>
-                <th>Status</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for job in jobs %}
-            <tr>
-                <td style="font-weight: 500; font-size: 1.1rem;">{{ job.title }}</td>
-                <td style="color: var(--text-muted);">{{ job.created_at[:10] }}</td>
-                <td><span class="status-pill open">ACTIVE</span></td>
-                <td class="actions-cell">
-                    <a href="/jobs/{{ job.id }}" class="btn-secondary btn-sm"><i class="fa-solid fa-eye"></i> View</a>
-                    <form action="/jobs/{{ job.id }}/delete" method="POST" style="display:inline;"
-                        onsubmit="return confirm('Are you sure? This will delete the job and all candidates.');">
-                        <button type="submit" class="btn-danger"><i class="fa-solid fa-trash"></i></button>
-                    </form>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+<div class="dashboard-header" style="margin-bottom: 2rem;">
+    <h1
+        style="background: linear-gradient(135deg, var(--primary) 0%, #818cf8 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 0.5rem;">
+        Recruiting Overview
+    </h1>
+    <p style="color: var(--text-secondary);">Manage your talent pool and active roles.</p>
 </div>
 
-<!-- Create Job Modal Trigger or Inline Form -->
-<div class="glass-card" style="margin-top: 3rem;">
-    <h3 style="margin-bottom: 1.5rem;">Create New Position</h3>
-    <form action="/jobs/create" method="POST" enctype="multipart/form-data">
-        <div class="form-group">
-            <input type="text" name="title" placeholder="Job Title (e.g. Senior Product Designer)" required>
+<!-- Stats Grid Placeholder -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="icon-box purple"><i class="fa-solid fa-users"></i></div>
+        <div class="stat-info">
+            <h3>{{ total_candidates }}</h3>
+            <p style="margin:0; font-size:0.9rem; color:var(--text-muted);">Total Candidates</p>
         </div>
-        <div class="form-group">
-            <label style="display:block; margin-bottom:0.5rem; color:var(--text-muted); font-size:0.9rem;">Upload
-                Description (PDF/Docs)</label>
-            <input type="file" name="desc_file" accept=".pdf,.docx,.txt" style="padding: 0.5rem;">
+    </div>
+    <div class="stat-card">
+        <div class="icon-box blue"><i class="fa-solid fa-briefcase"></i></div>
+        <div class="stat-info">
+            <h3>{{ jobs|length }}</h3>
+            <p style="margin:0; font-size:0.9rem; color:var(--text-muted);">Active Jobs</p>
         </div>
-        <button type="submit" class="btn-primary">
-            <i class="fa-solid fa-plus"></i> Create Job
+    </div>
+    <div class="stat-card">
+        <div class="icon-box green"><i class="fa-solid fa-chart-line"></i></div>
+        <div class="stat-info">
+            <h3>{{ avg_score }}%</h3>
+            <p style="margin:0; font-size:0.9rem; color:var(--text-muted);">Avg Match Score</p>
+        </div>
+    </div>
+</div>
+
+<div class="glass-card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+        <h3 style="margin:0;">Active Positions</h3>
+        <button onclick="document.getElementById('createJobForm').scrollIntoView({behavior: 'smooth'})"
+            class="btn-secondary" style="font-size: 0.85rem;">
+            <i class="fa-solid fa-plus"></i> New Job
         </button>
-    </form>
-</div>
+    </div>
+
+    <div class="table-container" style="box-shadow: none; border: none; background: transparent;">
+        <table>
+            <thead>
+                <tr>
+                    <th>Job Title</th>
+                    <th>Created</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for job in jobs %}
+                <tr>
+                    <td style="font-weight: 500; font-size: 1.1rem;">{{ job.title }}</td>
+                    <td style="color: var(--text-muted);">{{ job.created_at[:10] }}</td>
+                    <td><span class="status-pill open">ACTIVE</span></td>
+                    <td class="actions-cell">
+                        <a href="/jobs/{{ job.id }}" class="btn-secondary btn-sm"><i class="fa-solid fa-eye"></i>
+                            View</a>
+                        <form action="/jobs/{{ job.id }}/delete" method="POST" style="display:inline;"
+                            onsubmit="return confirm('Are you sure? This will delete the job and all candidates.');">
+                            <button type="submit" class="btn-danger"><i class="fa-solid fa-trash"></i></button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Create Job Modal Trigger or Inline Form -->
+    <!-- Create Job Section -->
+    <div id="createJobForm" class="glass-card" style="margin-top: 3rem; border-top: 4px solid var(--primary);">
+        <h3 style="margin-bottom: 1.5rem;">Create New Position</h3>
+        <form action="/jobs/create" method="POST" enctype="multipart/form-data" style="display: grid; gap: 1.5rem;">
+            <div class="form-group">
+                <label style="display:block; margin-bottom:0.5rem; font-weight: 500;">Job Title</label>
+                <input type="text" name="title" placeholder="e.g. Senior Frontend Engineer" required
+                    style="font-size: 1.1rem; padding: 1rem;">
+            </div>
+
+            <div class="form-group">
+                <label style="display:block; margin-bottom:0.5rem; font-weight: 500;">
+                    Job Description
+                    <span style="font-weight: 400; color: var(--text-muted); font-size: 0.9rem;">(Upload PDF/Docx used
+                        for AI matching)</span>
+                </label>
+                <div style="border: 2px dashed var(--border); border-radius: var(--radius); padding: 2rem; text-align: center; transition: all 0.2s;"
+                    onmouseover="this.style.borderColor='var(--primary)'; this.style.background='rgba(99,102,241,0.05)'"
+                    onmouseout="this.style.borderColor='var(--border)'; this.style.background='transparent'">
+                    <i class="fa-solid fa-cloud-arrow-up"
+                        style="font-size: 2rem; color: var(--text-muted); margin-bottom: 1rem;"></i>
+                    <input type="file" name="desc_file" accept=".pdf,.docx,.txt"
+                        style="display: block; margin: 0 auto;">
+                </div>
+            </div>
+
+            <div style="text-align: right;">
+                <button type="submit" class="btn-primary" style="padding: 1rem 2rem; font-size: 1rem;">
+                    <i class="fa-solid fa-plus"></i> Launch Recruitment Campaign
+                </button>
+            </div>
+        </form>
+    </div>
 </div>
 {% endblock %}

@@ -24,6 +24,36 @@
     <input type="file" id="cvsInput" name="cvs" multiple onchange="this.form.submit()">
 </form>
 
+<div class="filter-toolbar glass-card"
+    style="padding: 1rem; margin-bottom: 1.5rem; display: flex; gap: 1rem; align-items: center;">
+    <span style="font-weight: 600; color: var(--text-primary);"><i class="fa-solid fa-filter"></i> Filters:</span>
+    <form action="" method="GET" style="display: flex; gap: 1rem; flex: 1; align-items: center;">
+
+        <select name="status_filter" style="padding: 0.5rem; border-radius: var(--radius);">
+            <option value="">All Statuses</option>
+            <option value="Applied" {% if request.args.get('status_filter')=='Applied' %}selected{% endif %}>Applied
+                Only</option>
+            <option value="Screening" {% if request.args.get('status_filter')=='Screening' %}selected{% endif %}>
+                Screening Only</option>
+            <option value="Interview" {% if request.args.get('status_filter')=='Interview' %}selected{% endif %}>
+                Interview Only</option>
+            <option value="Offer" {% if request.args.get('status_filter')=='Offer' %}selected{% endif %}>Offer Only
+            </option>
+        </select>
+
+        <input type="number" name="min_score" placeholder="Min Score (0-100)"
+            value="{{ request.args.get('min_score', '') }}"
+            style="width: 150px; padding: 0.5rem; border-radius: var(--radius);">
+
+        <button type="submit" class="btn-primary" style="padding: 0.5rem 1rem;">Apply</button>
+
+        {% if request.args.get('min_score') or request.args.get('status_filter') %}
+        <a href="{{ url_for('core.job_detail', job_id=job.id) }}" class="btn-secondary"
+            style="font-size: 0.9rem;">Clear</a>
+        {% endif %}
+    </form>
+</div>
+
 <div class="candidates-section">
     {% if candidates %}
     <div class="table-container">
@@ -33,6 +63,7 @@
                     <th>Rank</th>
                     <th>Candidate</th>
                     <th>Match Score</th>
+                    <th>Status</th>
                     <th>Skill Gaps</th>
                     <th>Actions</th>
                 </tr>
@@ -52,13 +83,28 @@
                             <span>{{ cand.total_score|round|int }}%</span>
                         </div>
                     </td>
+                    <td onclick="event.stopPropagation()">
+                        <form action="/candidate/{{ cand.id }}/status" method="POST">
+                            <select name="status" onchange="this.form.submit()"
+                                style="padding: 0.25rem 0.5rem; border-radius: 6px; font-size: 0.8rem; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-primary); cursor: pointer;">
+                                <option value="Applied" {% if cand.status=='Applied' %}selected{% endif %}>Applied
+                                </option>
+                                <option value="Screening" {% if cand.status=='Screening' %}selected{% endif %}>Screening
+                                </option>
+                                <option value="Interview" {% if cand.status=='Interview' %}selected{% endif %}>Interview
+                                </option>
+                                <option value="Offer" {% if cand.status=='Offer' %}selected{% endif %}>Offer</option>
+                                <option value="Rejected" {% if cand.status=='Rejected' %}selected{% endif %}>Rejected
+                                </option>
+                            </select>
+                        </form>
+                    </td>
                     <td>
-                        <span class="tag missing" style="font-size: 0.75rem;">View Analysis</span>
+                        <span class="tag missing" style="font-size: 0.75rem; cursor: pointer;">View Analysis</span>
                     </td>
                     <td>
                         <button class="btn-icon" onclick="event.stopPropagation(); deleteCandidate({{ cand.id }})"><i
                                 class="fa-solid fa-trash text-red"></i></button>
-                        <button class="btn-icon"><i class="fa-solid fa-chevron-right"></i></button>
                     </td>
                 </tr>
                 {% endfor %}

@@ -1,3 +1,4 @@
+
 import pdfplumber
 import docx
 import re
@@ -79,12 +80,73 @@ def parse_cv_sections(text):
             
     return sections
 
-def anonymize_cv(text):
+def extract_candidate_info(text):
     """
-    Removes emails and phone numbers for blind screening.
+    Extracts structured information like Email, Phone, and Education.
     """
-    # Remove email
-    text = re.sub(r'[\w\.-]+@[\w\.-]+\.\w+', '[EMAIL_REDACTED]', text)
-    # Remove phone (simple regex, can be improved)
-    text = re.sub(r'(\+\d{1,3}[- ]?)?\(?\d{3}\)?[- ]?\d{3}[- ]?\d{4}', '[PHONE_REDACTED]', text)
-    return text
+    info = {
+        'email': None,
+        'phone': None,
+        'education': [],
+        'name': None
+    }
+    
+    if not text:
+        return info
+    
+    # 1. Email Extraction
+    try:
+        email_pattern = r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}'
+        email_match = re.search(email_pattern, text)
+        if email_match:
+            info['email'] = email_match.group(0)
+    except Exception:
+        pass
+        
+    # 2. Phone Extraction
+    # Use re.search for the first valid occurrence of a phone-like pattern
+    try:
+        # Regex for standard formats: (123) 456-7890, 123-456-7890, +1 123 456 7890
+        phone_pattern = r'(\+\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}'
+        phone_match = re.search(phone_pattern, text)
+        if phone_match:
+            info['phone'] = phone_match.group(0).strip()
+    except Exception:
+        pass
+
+    # 3. Education Extraction
+    try:
+        degrees = [
+            'B.Tech', 'B.E.', 'B.Sc', 'BCA', 'B.A.',
+            'M.Tech', 'M.E.', 'M.Sc', 'MCA', 'M.B.A.', 'MBA', 'M.A.',
+            'Ph.D', 'Doctorate', 'Bachelor', 'Master', 'Diploma'
+        ]
+        
+        found_degrees = set()
+        lower_text = text.lower()
+        for degree in degrees:
+            # Word boundary check
+            if re.search(r'\b' + re.escape(degree.lower()) + r'\b', lower_text):
+                found_degrees.add(degree)
+        
+        if found_degrees:
+            info['education'] = list(found_degrees)
+    except Exception:
+        pass
+        
+    # 4. Name Extraction (Heuristic: First significant line)
+    try:
+        lines = [l.strip() for l in text.split('\n') if l.strip()]
+        if lines:
+            # Simple heuristic: first line is usually the name
+            # Filtering out common header words if they appear alone
+            potential_name = lines[0]
+            if len(potential_name.split()) < 5 and "resume" not in potential_name.lower() and "curriculum" not in potential_name.lower():
+                 info['name'] = potential_name
+            elif len(lines) > 1:
+                 # Try second line if first is likely a header
+                 info['name'] = lines[1]
+    except Exception:
+        pass
+
+    return info

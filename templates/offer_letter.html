@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Offer Letter - {{ candidate.name }}</title>
+    <style>
+        body {
+            font-family: 'Times New Roman', Times, serif;
+            line-height: 1.6;
+            color: #000;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 4rem 2rem;
+        }
+
+        .header {
+            border-bottom: 2px solid #000;
+            padding-bottom: 1rem;
+            margin-bottom: 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+
+        .company-name {
+            font-size: 24px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .date {
+            margin-bottom: 2rem;
+        }
+
+        .subject {
+            font-weight: bold;
+            text-decoration: underline;
+            margin: 1.5rem 0;
+        }
+
+        .content p {
+            margin-bottom: 1rem;
+        }
+
+        .details-table {
+            width: 100%;
+            margin: 1.5rem 0;
+            border-collapse: collapse;
+        }
+
+        .details-table td {
+            padding: 0.5rem;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .details-table td:first-child {
+            font-weight: bold;
+            width: 30%;
+        }
+
+        .signature-section {
+            margin-top: 4rem;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .sign-line {
+            border-top: 1px solid #000;
+            width: 300px;
+            padding-top: 0.5rem;
+        }
+
+        @media print {
+            body {
+                padding: 0;
+                margin: 2cm;
+            }
+
+            .no-print {
+                display: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="no-print"
+        style="background: #f3f4f6; padding: 1rem; margin-bottom: 2rem; border-radius: 8px; text-align: center; font-family: sans-serif;">
+        <button onclick="window.print()"
+            style="background: #2563eb; color: white; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer; font-size: 1rem;">
+            Download / Print as PDF
+        </button>
+        <a href="javascript:history.back()" style="margin-left: 1rem; color: #666; text-decoration: none;">Go Back</a>
+    </div>
+
+    <div class="header">
+        <div class="company-name">NexGen Corp</div>
+        <div>Innovating the Future</div>
+    </div>
+
+    <div class="date">
+        Date: {{ today }}
+    </div>
+
+    <div>
+        <strong>To:</strong><br>
+        {{ candidate.name }}<br>
+        {{ candidate.email }}
+    </div>
+
+    <div class="subject">Subject: Offer of Employment - {{ job.title }}</div>
+
+    <div class="content">
+        <p>Dear {{ candidate.name }},</p>
+
+        <p>We are pleased to extend an offer of employment for the position of <strong>{{ job.title }}</strong> at
+            NexGen Corp. We were impressed with your skills and experience, and we believe you will be a valuable asset
+            to our team.</p>
+
+        <p>The terms of your employment are as follows:</p>
+
+        <table class="details-table">
+            <tr>
+                <td>Position</td>
+                <td>{{ job.title }}</td>
+            </tr>
+            <tr>
+                <td>Start Date</td>
+                <td>{{ start_date }}</td>
+            </tr>
+            <tr>
+                <td>Annual Base Salary</td>
+                <td>₹ {{ salary }}</td>
+            </tr>
+            {% if bonus and bonus != '0' %}
+            <tr>
+                <td>Signing Bonus</td>
+                <td>₹ {{ bonus }}</td>
+            </tr>
+            {% endif %}
+            <tr>
+                <td>Reporting To</td>
+                <td>Hiring Manager</td>
+            </tr>
+        </table>
+
+        <p><strong>Additional Benefits:</strong><br>
+            {{ terms }}</p>
+
+        <p>This offer is contingent upon the successful completion of reference checks and background verification. This
+            employment is "at-will," meaning that either you or the company may terminate the employment relationship at
+            any time, with or without cause.</p>
+
+        <p>Please indicate your acceptance of this offer by signing below and returning a copy to us by {{ expiry_date
+            }}.</p>
+
+        <p>We look forward to welcoming you to the team!</p>
+
+        <p>Sincerely,</p>
+        <br>
+        <p>Recruiting Team<br>NexGen Corp</p>
+    </div>
+
+    <div class="signature-section">
+        <div>
+            <div class="sign-line">Candidate Signature</div>
+            <div style="margin-top: 0.5rem;">Date</div>
+        </div>
+        <div>
+            <div class="sign-line">Authorized Signatory</div>
+            <div style="margin-top: 0.5rem;">Date</div>
+        </div>
+    </div>
+
+</body>
+
+</html>

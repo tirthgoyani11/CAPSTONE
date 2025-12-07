@@ -3,7 +3,12 @@ import database
 
 bp = Blueprint('talent_pool', __name__)
 
+from flask_login import login_required
+from decorators import role_required
+
 @bp.route('/talent_pool')
+@login_required
+@role_required('recruiter')
 def index():
     query = request.args.get('q', '')
     conn = database.get_db_connection()

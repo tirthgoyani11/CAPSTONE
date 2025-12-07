@@ -1,149 +1,236 @@
-<div class="modal-header">
-    <div style="display: flex; align-items: center; gap: 1rem;">
+<div class="modal-header glass-effect" style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+    <div style="display: flex; align-items: center; gap: 1.5rem;">
         <div class="score-circle"
-            style="--p:{{ candidate.total_score }}; --c:#6366f1; width: 50px; height: 50px; font-size: 1rem;">
+            style="--p:{{ candidate.total_score }}; --c:{% if candidate.total_score > 80 %}#10b981{% elif candidate.total_score > 50 %}#f59e0b{% else %}#ef4444{% endif %}; width: 64px; height: 64px; font-size: 1.25rem; box-shadow: 0 0 20px rgba(99, 102, 241, 0.3);">
             <span>{{ candidate.total_score|round|int }}%</span>
         </div>
         <div>
-            <h2 style="margin:0; font-size: 1.25rem;">{{ candidate.filename }}</h2>
-            <p style="margin:0; color: var(--text-muted); font-size: 0.85rem;">AI Analysis Report</p>
+            <h2 class="text-gradient-adaptive" style="margin:0; font-size: 1.5rem;">
+                {{ analysis.personal_info.name if analysis.personal_info and analysis.personal_info.name else
+                candidate.filename }}
+            </h2>
+            <div style="display: flex; align-items: center; gap: 0.75rem; margin-top: 0.25rem;">
+                <span style="color: var(--info); font-size: 0.9rem; font-weight: 500; letter-spacing: 0.5px;">AI POWERED
+                    ANALYSIS</span>
+
+                <a href="{{ url_for('core.uploaded_file', filename=candidate.filename) }}" target="_blank" class="tag"
+                    style="background: rgba(99, 102, 241, 0.2); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.4); font-size: 0.75rem; margin: 0; text-decoration: none; cursor: pointer;">
+                    <i class="fa-solid fa-file-pdf" style="margin-right: 0.3rem;"></i> View CV
+                </a>
+
+                {% if analysis and analysis.years_experience > 0 %}
+                <span class="tag"
+                    style="background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); font-size: 0.75rem; margin: 0;">
+                    <i class="fa-solid fa-briefcase" style="margin-right: 0.3rem;"></i> {{ analysis.years_experience }}
+                    Years Exp.
+                </span>
+                {% else %}
+                <span class="tag"
+                    style="background: rgba(148, 163, 184, 0.15); color: #cbd5e1; border: 1px solid rgba(148, 163, 184, 0.3); font-size: 0.75rem; margin: 0;">
+                    <i class="fa-solid fa-graduation-cap" style="margin-right: 0.3rem;"></i> Fresh / Entry Level
+                </span>
+                {% endif %}
+            </div>
         </div>
     </div>
-    <button onclick="closeModal()" class="btn-icon" style="font-size: 1.5rem;">&times;</button>
+    <button onclick="closeModal()" class="btn-close">&times;</button>
 </div>
 
-<div class="modal-body">
-    <div class="modal-grid" style="display: grid; grid-template-columns: 2fr 1fr; gap: 2rem;">
-        <!-- Left Column: Skills & Questions -->
+<div class="modal-body" style="padding: 2rem;">
+    <!-- Hidden Data Container for Chart.js -->
+    <div id="chart-data" data-semantic="{{ candidate.semantic_score }}" data-skills="{{ candidate.skills_score }}"
+        data-experience="{{ candidate.experience_score }}" data-total="{{ candidate.total_score }}"
+        style="display: none;"></div>
+
+    <div class="modal-grid" style="display: grid; grid-template-columns: 1.8fr 1.2fr; gap: 2.5rem;">
+
+        <!-- Left Column: Detailed Analysis -->
         <div class="analysis-col">
-            <!-- Skills -->
-            <div style="margin-bottom: 2rem; background: rgba(0,0,0,0.1); padding: 1rem; border-radius: var(--radius);">
-                <div style="margin-bottom: 1rem;">
-                    <h4
-                        style="font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted); margin: 0 0 0.5rem 0;">
-                        Matched Skills</h4>
+
+            <!-- Contact & Info Section (NEW) -->
+            <div class="glass-card nested-card"
+                style="padding: 1.5rem; margin-bottom: 2rem; border-left: 3px solid var(--info);">
+                <h4
+                    style="font-size: 0.85rem; text-transform: uppercase; color: var(--text-muted); margin-bottom: 1rem; letter-spacing: 0.05em;">
+                    <i class="fa-solid fa-user-circle text-info" style="margin-right: 0.5rem;"></i> Candidate Details
+                </h4>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; font-size: 0.95rem;">
                     <div>
-                        {% for skill in analysis.matching %}
-                        <span class="tag match">{{ skill }}</span>
-                        {% else %}
-                        <span style="color: var(--text-muted); font-size: 0.9rem;">No specific skills matched.</span>
+                        <span
+                            style="display: block; color: var(--text-muted); font-size: 0.8rem; margin-bottom: 0.2rem;">Email</span>
+                        <div style="color: var(--text-secondary); display: flex; align-items: center; gap: 0.5rem;">
+                            <i class="fa-solid fa-envelope" style="color: var(--primary);"></i>
+                            {{ analysis.personal_info.email if analysis.personal_info and analysis.personal_info.email
+                            else 'Not Found' }}
+                        </div>
+                    </div>
+                    <div>
+                        <span
+                            style="display: block; color: var(--text-muted); font-size: 0.8rem; margin-bottom: 0.2rem;">Phone</span>
+                        <div style="color: var(--text-secondary); display: flex; align-items: center; gap: 0.5rem;">
+                            <i class="fa-solid fa-phone" style="color: var(--success);"></i>
+                            {{ analysis.personal_info.phone if analysis.personal_info and analysis.personal_info.phone
+                            else 'Not Found' }}
+                        </div>
+                    </div>
+                </div>
+
+                {% if analysis.personal_info and analysis.personal_info.education %}
+                <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.05);">
+                    <span
+                        style="display: block; color: var(--text-muted); font-size: 0.8rem; margin-bottom: 0.5rem;">Education
+                        Detected</span>
+                    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                        {% for deg in analysis.personal_info.education %}
+                        <span class="tag"
+                            style="background: rgba(99, 102, 241, 0.1); border: 1px solid rgba(99, 102, 241, 0.2); color: #818cf8; font-size: 0.85rem;">
+                            <i class="fa-solid fa-graduation-cap"></i> {{ deg }}
+                        </span>
                         {% endfor %}
                     </div>
                 </div>
-                <div>
-                    <h4
-                        style="font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted); margin: 0 0 0.5rem 0;">
-                        Missing Skills</h4>
-                    <div>
-                        {% for skill in analysis.missing %}
-                        <span class="tag missing">{{ skill }}</span>
-                        {% else %}
-                        <span style="color: var(--text-muted); font-size: 0.9rem;">No key skills missing.</span>
-                        {% endfor %}
-                    </div>
-                </div>
+                {% endif %}
             </div>
 
-            <!-- Questions -->
-            <div class="interview-guide">
-                <h3 style="margin: 0 0 1rem 0; font-size: 1.1rem; color: var(--text-primary);">Suggested Interview
-                    Questions</h3>
-                <ul class="question-list" style="padding: 0; list-style: none;">
+            <!-- Skills Section -->
+            <div class="glass-card nested-card" style="padding: 1.5rem; margin-bottom: 2rem;">
+                <div style="margin-bottom: 1.5rem;">
+                    <h4
+                        style="font-size: 0.85rem; text-transform: uppercase; color: var(--text-muted); margin-bottom: 1rem; letter-spacing: 0.05em;">
+                        <i class="fa-solid fa-check-circle text-green" style="margin-right: 0.5rem;"></i> Matched Skills
+                    </h4>
+                    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                        {% for skill in analysis.matching %}
+                        <span class="tag match"
+                            style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); color: #34d399; padding: 0.35rem 0.85rem;">{{
+                            skill }}</span>
+                        {% else %}
+                        <span style="color: var(--text-muted); font-style: italic;">No specific skills matched.</span>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                {% if analysis.missing %}
+                <div>
+                    <h4
+                        style="font-size: 0.85rem; text-transform: uppercase; color: var(--text-muted); margin-bottom: 1rem; letter-spacing: 0.05em;">
+                        <i class="fa-solid fa-circle-exclamation text-red" style="margin-right: 0.5rem;"></i> Skill Gaps
+                    </h4>
+                    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                        {% for skill in analysis.missing %}
+                        <span class="tag missing"
+                            style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); color: #f87171; padding: 0.35rem 0.85rem;">{{
+                            skill }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- AI Interview Questions -->
+            <div>
+                <h3
+                    style="margin-bottom: 1.25rem; font-size: 1.25rem; display: flex; align-items: center; gap: 0.75rem;">
+                    <i class="fa-solid fa-clipboard-question" style="color: var(--primary);"></i>
+                    Suggested Interview Questions
+                </h3>
+                <div class="question-list">
                     {% for q in analysis.questions %}
-                    <li
-                        style="display: flex; align-items: flex-start; gap: 0.75rem; margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border);">
-                        <i class="fa-solid fa-circle-question" style="color: #6366f1; margin-top: 0.2rem;"></i>
-                        <span style="color: var(--text-secondary); font-size: 0.95rem; line-height: 1.5;">{{ q }}</span>
-                    </li>
+                    <div class="glass-card"
+                        style="padding: 1.25rem; margin-bottom: 1rem; border-left: 3px solid var(--primary); background: linear-gradient(90deg, rgba(99, 102, 241, 0.05) 0%, transparent 100%);">
+                        <p style="margin: 0; color: var(--text-secondary); font-size: 0.95rem; line-height: 1.6;">{{ q
+                            }}</p>
+                    </div>
                     {% endfor %}
-                </ul>
+                </div>
             </div>
         </div>
 
-        <!-- Right Column: Charts & Stats -->
+        <!-- Right Column: Visuals -->
         <div class="chart-col">
-            <!-- Radar Chart Card -->
-            <div class="stat-card" style="display: block; padding: 1rem; height: 300px; margin-bottom: 1rem;">
-                <h4 style="text-align: center; margin-bottom: 1rem;">Profile Radar</h4>
-                <div style="height: 240px; position: relative;">
+            <!-- Radar Chart -->
+            <div class="glass-card" style="padding: 1.5rem; margin-bottom: 1.5rem; text-align: center;">
+                <h4 style="margin-bottom: 1.5rem; color: var(--text-primary);">Profile Match Radar</h4>
+                <div style="height: 250px; position: relative;">
                     <canvas id="skillsRadar"></canvas>
                 </div>
             </div>
 
-            <!-- Quick Stats Card -->
-            <div class="stat-card" style="display: block; padding: 1.5rem;">
-                <h4 style="margin-bottom: 1rem; font-size: 1rem;">Category Scores</h4>
-                <div style="display: flex; justify-content: space-between; margin-bottom: 0.75rem;">
-                    <span style="color: var(--text-muted);">Experience</span>
-                    <span style="font-weight: 600;">{{ candidate.experience_score|round }}%</span>
+            <!-- Breakdown -->
+            <div class="glass-card" style="padding: 1.5rem;">
+                <h4 style="margin-bottom: 1.25rem;">Score Breakdown</h4>
+
+                <div style="margin-bottom: 1rem;">
+                    <div
+                        style="display: flex; justify-content: space-between; margin-bottom: 0.4rem; font-size: 0.9rem;">
+                        <span style="color: var(--text-muted);">Experience Match</span>
+                        <span style="font-weight: 600;">{{ candidate.experience_score|round }}%</span>
+                    </div>
+                    <div class="progress-bg">
+                        <div
+                            style="width: {{ candidate.experience_score }}%; height: 100%; background: var(--info); border-radius: 3px;">
+                        </div>
+                    </div>
                 </div>
-                <div style="display: flex; justify-content: space-between; margin-bottom: 0.75rem;">
-                    <span style="color: var(--text-muted);">Skills</span>
-                    <span style="font-weight: 600;">{{ candidate.skills_score|round }}%</span>
+
+                <div style="margin-bottom: 1rem;">
+                    <div
+                        style="display: flex; justify-content: space-between; margin-bottom: 0.4rem; font-size: 0.9rem;">
+                        <span style="color: var(--text-muted);">Skills Match</span>
+                        <span style="font-weight: 600;">{{ candidate.skills_score|round }}%</span>
+                    </div>
+                    <div class="progress-bg">
+                        <div
+                            style="width: {{ candidate.skills_score }}%; height: 100%; background: var(--success); border-radius: 3px;">
+                        </div>
+                    </div>
                 </div>
-                <div style="display: flex; justify-content: space-between;">
-                    <span style="color: var(--text-muted);">Semantic Match</span>
-                    <span style="font-weight: 600;">{{ candidate.semantic_score|round }}%</span>
+
+                <div>
+                    <div
+                        style="display: flex; justify-content: space-between; margin-bottom: 0.4rem; font-size: 0.9rem;">
+                        <span style="color: var(--text-muted);">Semantic Relevance</span>
+                        <span style="font-weight: 600;">{{ candidate.semantic_score|round }}%</span>
+                    </div>
+                    <div class="progress-bg">
+                        <div
+                            style="width: {{ candidate.semantic_score }}%; height: 100%; background: var(--primary); border-radius: 3px;">
+                        </div>
+                    </div>
                 </div>
+            </div>
+
+            <!-- Offer Management (NEW) -->
+            {% if candidate.status == 'Offer' %}
+            <div class="glass-card" style="padding: 1.5rem; margin-bottom: 1.5rem; border-top: 3px solid #10b981;">
+                <h4
+                    style="margin-bottom: 1rem; color: var(--text-primary); display: flex; align-items: center; gap: 0.5rem;">
+                    <i class="fa-solid fa-file-contract"></i> Offer Management
+                </h4>
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">
+                    Candidate is in Offer stage. Generate an official offer letter now.
+                </p>
+                <a href="/candidate/{{ candidate.id }}/offer/form" target="_blank" class="btn-primary"
+                    style="width: 100%; justify-content: center; background: #10b981; border-color: #059669;">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i> Generate Offer Letter
+                </a>
+            </div>
+            {% endif %}
+
+            <!-- Hiring Manager Notes (NEW) -->
+            <div class="glass-card" style="padding: 1.5rem; border-top: 3px solid #f472b6;">
+                <h4
+                    style="margin-bottom: 1rem; color: var(--text-primary); display: flex; align-items: center; gap: 0.5rem;">
+                    <i class="fa-solid fa-pen-nib"></i> Hiring Manager Notes
+                </h4>
+                <form action="/candidate/{{ candidate.id }}/notes" method="POST">
+                    <textarea name="notes" rows="6" placeholder="Enter interview feedback or internal notes here..."
+                        style="width: 100%; padding: 0.8rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border); color: var(--text-primary); border-radius: var(--radius); resize: vertical; margin-bottom: 1rem;">{{ candidate.notes if candidate.notes else '' }}</textarea>
+                    <button type="submit" class="btn-primary" style="width: 100%; justify-content: center;">
+                        <i class="fa-solid fa-save"></i> Save Notes
+                    </button>
+                </form>
             </div>
         </div>
     </div>
 </div>
-
-<script>
-    // Initialize Radar Chart
-    // Ensure we destroy old chart if it exists to avoid overlaps on re-open (though modal content is replaced, safety first)
-    // Actually, script runs on insertion.
-
-    setTimeout(() => {
-        var canvas = document.getElementById('skillsRadar');
-        if (canvas) {
-            var ctx = canvas.getContext('2d');
-            new Chart(ctx, {
-                type: 'radar',
-                data: {
-                    labels: ['Semantic', 'Skills', 'Experience', 'Relevance', 'Impact'],
-                    datasets: [{
-                        label: 'Candidate',
-                        data: [
-                            {{ candidate.semantic_score }},
-                    {{ candidate.skills_score }},
-                            {{ candidate.experience_score }},
-        { { (candidate.total_score * 0.9) | round } },
-        { { (candidate.total_score * 0.85) | round } }
-                        ],
-        backgroundColor: 'rgba(99, 102, 241, 0.2)',
-            borderColor: '#6366f1',
-                pointBackgroundColor: '#fff',
-                    borderWidth: 2
-    },
-        {
-            label: 'Target',
-            data: [100, 100, 100, 100, 100],
-            backgroundColor: 'transparent',
-            borderColor: 'rgba(255, 255, 255, 0.1)',
-            borderDash: [5, 5],
-            pointRadius: 0
-        }]
-                },
-        options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        scales: {
-            r: {
-                angleLines: { color: 'rgba(255, 255, 255, 0.1)' },
-                grid: { color: 'rgba(255, 255, 255, 0.1)' },
-                pointLabels: { color: '#cbd5e1', font: { size: 11 } },
-                ticks: { display: false, backdropColor: 'transparent' },
-                suggestedMin: 0,
-                suggestedMax: 100
-            }
-        },
-        plugins: {
-            legend: { display: false }
-        }
-    }
-            });
-        }
-    }, 100); // Small delay to ensure DOM is ready
-</script>

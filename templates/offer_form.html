@@ -1,0 +1,66 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="dashboard-header" style="margin-bottom: 2rem;">
+    <h1
+        style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+        Generate Offer Letter
+    </h1>
+    <p style="color: var(--text-secondary);">Customize and issue an official offer to {{ candidate.name }}.</p>
+</div>
+
+<div class="glass-card" style="max-width: 800px; margin: 0 auto; padding: 2rem;">
+    <form action="/candidate/{{ candidate.id }}/offer/generate" method="POST">
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+            <div>
+                <label style="display: block; color: var(--text-muted); margin-bottom: 0.5rem;">Candidate Name</label>
+                <input type="text" value="{{ candidate.name }}" disabled
+                    style="width: 100%; padding: 0.8rem; background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: var(--text-muted); border-radius: var(--radius);">
+            </div>
+            <div>
+                <label style="display: block; color: var(--text-muted); margin-bottom: 0.5rem;">Job Title</label>
+                <input type="text" value="{{ job.title }}" disabled
+                    style="width: 100%; padding: 0.8rem; background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: var(--text-muted); border-radius: var(--radius);">
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+            <div>
+                <label style="display: block; color: var(--text-muted); margin-bottom: 0.5rem;">Annual Salary
+                    (₹)</label>
+                <input type="number" name="salary" placeholder="e.g. 1200000" required
+                    style="width: 100%; padding: 0.8rem; background: var(--bg-dashboard); border: 1px solid var(--border); color: var(--text-primary); border-radius: var(--radius);">
+            </div>
+            <div>
+                <label style="display: block; color: var(--text-muted); margin-bottom: 0.5rem;">Start Date</label>
+                <input type="date" name="start_date" required
+                    style="width: 100%; padding: 0.8rem; background: var(--bg-dashboard); border: 1px solid var(--border); color: var(--text-primary); border-radius: var(--radius);">
+            </div>
+        </div>
+
+        <div style="margin-bottom: 1.5rem;">
+            <label style="display: block; color: var(--text-muted); margin-bottom: 0.5rem;">Signing Bonus
+                (Optional)</label>
+            <input type="number" name="bonus" placeholder="e.g. 5000"
+                style="width: 100%; padding: 0.8rem; background: var(--bg-dashboard); border: 1px solid var(--border); color: var(--text-primary); border-radius: var(--radius);">
+        </div>
+
+        <div style="margin-bottom: 2rem;">
+            <label style="display: block; color: var(--text-muted); margin-bottom: 0.5rem;">Additional Terms /
+                Benefits</label>
+            <textarea name="terms" rows="4" placeholder="e.g. Health Insurance, Stock Options, Remote Work Policy..."
+                style="width: 100%; padding: 0.8rem; background: var(--bg-dashboard); border: 1px solid var(--border); color: var(--text-primary); border-radius: var(--radius);">Standard company benefits package including 401(k) matching and comprehensive health coverage.</textarea>
+        </div>
+
+        <div style="display: flex; gap: 1rem;">
+            <a href="{{ url_for('core.job_detail', job_id=job.id) }}" class="btn-secondary"
+                style="flex: 1; text-align: center;">Cancel</a>
+            <button type="submit" class="btn-primary"
+                style="flex: 2; justify-content: center; background: #10b981; border-color: #059669;">
+                <i class="fa-solid fa-print"></i> Generate Official Letter
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

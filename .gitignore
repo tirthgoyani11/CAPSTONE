@@ -7,3 +7,7 @@ db.sqlite3
 uploads/
 gcetv23/
 .DS_Store
+
+# AI Models
+models/nexgen_cv_engine/
+*.safetensors

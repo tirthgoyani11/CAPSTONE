@@ -1,0 +1,71 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<div style="display: flex; justify-content: center; align-items: center; min-height: 80vh;">
+    <div class="glass-card" style="width: 100%; max-width: 400px; padding: 2.5rem;">
+        <h2 style="text-align: center; margin-bottom: 2rem; font-weight: 700;">Create Account</h2>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div
+            style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); color: #f87171; padding: 0.75rem; border-radius: 8px; margin-bottom: 1.5rem; font-size: 0.9rem;">
+            {{ message }}
+        </div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+
+        <form method="POST">
+            <div style="margin-bottom: 1.5rem;">
+                <label style="display: block; color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.5rem;">Full
+                    Name</label>
+                <div class="input-group">
+                    <i class="fa-solid fa-user" style="color: var(--text-muted);"></i>
+                    <input type="text" name="name" required placeholder="John Doe"
+                        style="background: transparent; border: none; color: var(--text-primary); width: 100%; outline: none;">
+                </div>
+            </div>
+
+            <div style="margin-bottom: 1.5rem;">
+                <label style="display: block; color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.5rem;">Email
+                    Address</label>
+                <div class="input-group">
+                    <i class="fa-solid fa-envelope" style="color: var(--text-muted);"></i>
+                    <input type="email" name="email" required placeholder="john@example.com"
+                        style="background: transparent; border: none; color: var(--text-primary); width: 100%; outline: none;">
+                </div>
+            </div>
+
+            <div style="margin-bottom: 1.5rem;">
+                <label
+                    style="display: block; color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.5rem;">Password</label>
+                <div class="input-group">
+                    <i class="fa-solid fa-lock" style="color: var(--text-muted);"></i>
+                    <input type="password" name="password" required placeholder="Create a password"
+                        style="background: transparent; border: none; color: var(--text-primary); width: 100%; outline: none;">
+                </div>
+            </div>
+
+            <div style="margin-bottom: 2rem;">
+                <label style="display: block; color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.5rem;">I am
+                    a...</label>
+                <select name="role" class="input-group"
+                    style="width: 100%; background: rgba(255,255,255,0.03); color: var(--text-primary); border: 1px solid rgba(255,255,255,0.1); padding: 0.75rem; border-radius: 8px; outline: none;">
+                    <option value="candidate" style="background: #0f172a;">Candidate (Job Seeker)</option>
+                    <option value="recruiter" style="background: #0f172a;">Recruiter (Hiring)</option>
+                </select>
+            </div>
+
+            <button type="submit" class="btn-primary" style="width: 100%; justify-content: center;">
+                Create Account
+            </button>
+        </form>
+
+        <p style="text-align: center; margin-top: 1.5rem; color: var(--text-muted); font-size: 0.9rem;">
+            Already have an account? <a href="{{ url_for('auth.login') }}"
+                style="color: var(--primary); text-decoration: none;">Sign in</a>
+        </p>
+    </div>
+</div>
+{% endblock %}

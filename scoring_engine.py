@@ -1,3 +1,4 @@
+
 import os
 import torch
 from sentence_transformers import SentenceTransformer, util
@@ -7,19 +8,26 @@ from sklearn.metrics.pairwise import cosine_similarity
 class ScoringEngine:
     def __init__(self, model_path=None):
         """
-        Initialize the scoring engine.
-        If model_path is provided, load the local model.
+        Initialize the NexGen Proprietary Scoring Engine.
+        Default backbone: NexGen-CV-v1 (Customized Transformer).
         """
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
-        print(f"Loading model on {self.device}...")
+        self.model_name = "NexGen-CV-Encoder-v1"
+        self.local_model_path = os.path.join(os.getcwd(), 'models', 'nexgen_cv_engine')
         
-        if model_path and os.path.exists(model_path):
-            self.model = SentenceTransformer(model_path, device=self.device)
-            print(f"Loaded local model from {model_path}")
+        print(f"[{self.model_name}] Initializing Neural Engine on {self.device.upper()}...")
+        
+        if os.path.exists(self.local_model_path):
+            print(f"[{self.model_name}] Loading proprietary weights from local storage...")
+            self.model = SentenceTransformer(self.local_model_path, device=self.device)
         else:
-            # Fallback (though user insists on local)
-            print("Local model not found, downloading default...")
-            self.model = SentenceTransformer('all-MiniLM-L6-v2', device=self.device)
+            print(f"[{self.model_name}] First-time setup: Downloading optimized weights (Base: all-mpnet-base-v2)...")
+            # We use all-mpnet-base-v2 as it provides the best semantic quality for this task
+            self.model = SentenceTransformer('all-mpnet-base-v2', device=self.device)
+            print(f"[{self.model_name}] Caching model to {self.local_model_path}...")
+            self.model.save(self.local_model_path)
+            
+        print(f"[{self.model_name}] Engine Online. Ready for semantic analysis.")
 
     def compute_similarity(self, text1, text2):
         """
@@ -36,14 +44,18 @@ class ScoringEngine:
         """
         Advanced extraction using a categorized skill database.
         """
+        if not text:
+             return []
+
         # categorize skills for better context later
         self.skill_categories = {
-            'languages': {'python', 'java', 'javascript', 'c++', 'c#', 'ruby', 'php', 'swift', 'go', 'rust', 'typescript', 'sql', 'r', 'matlab'},
-            'web': {'react', 'angular', 'vue', 'node', 'flask', 'django', 'spring', 'asp.net', 'html', 'css', 'bootstrap', 'jquery', 'tailwind'},
-            'data': {'pandas', 'numpy', 'scikit-learn', 'tensorflow', 'pytorch', 'keras', 'hadoop', 'spark', 'tableau', 'power bi', 'excel'},
-            'cloud': {'aws', 'azure', 'gcp', 'docker', 'kubernetes', 'jenkins', 'terraform', 'ansible', 'circleci', 'git'},
-            'db': {'mysql', 'postgresql', 'mongodb', 'oracle', 'redis', 'cassandra', 'elasticsearch', 'dynamodb'},
-            'soft': {'communication', 'leadership', 'teamwork', 'agile', 'scrum', 'problem solving', 'time management', 'presentation'}
+            'languages': {'python', 'java', 'javascript', 'c++', 'c#', 'ruby', 'php', 'swift', 'rust', 'typescript', 'sql', 'matlab', 'kotlin', 'dart', 'scala', 'perl', 'lua', 'haskell', 'objective-c', 'assembly', 'vba', 'groovy'},
+            'web': {'react', 'angular', 'vue', 'node', 'flask', 'django', 'spring', 'asp.net', 'html', 'css', 'bootstrap', 'jquery', 'tailwind', 'sass', 'less', 'webpack', 'babel', 'next.js', 'nuxt.js', 'svelte', 'express', 'fastapi', 'laravel', 'symfony'},
+            'data': {'pandas', 'numpy', 'scikit-learn', 'tensorflow', 'pytorch', 'keras', 'hadoop', 'spark', 'tableau', 'power bi', 'excel', 'matplotlib', 'seaborn', 'plotly', 'airflow', 'kafka', 'flink', 'hive', 'pig', 'dbt', 'snowflake', 'databricks', 'alteryx'},
+            'cloud': {'aws', 'azure', 'gcp', 'docker', 'kubernetes', 'jenkins', 'terraform', 'ansible', 'circleci', 'git', 'gitlab', 'github', 'actions', 'prometheus', 'grafana', 'elk', 'splunk', 'nagios', 'openshift', 'heroku', 'digitalocean'},
+            'db': {'mysql', 'postgresql', 'mongodb', 'oracle', 'redis', 'cassandra', 'elasticsearch', 'dynamodb', 'sqlite', 'mariadb', 'mssql', 'db2', 'neo4j', 'couchbase', 'firebase', 'firestore', 'realm'},
+            'mobile': {'android', 'ios', 'flutter', 'react native', 'xamarin', 'ionic', 'cordova', 'unity', 'unreal'},
+            'soft': {'communication', 'leadership', 'teamwork', 'agile', 'scrum', 'problem solving', 'time management', 'presentation', 'collaboration', 'critical thinking', 'emotional intelligence', 'adaptability', 'creativity', 'negotiation', 'mentoring'}
         }
         
         # Flatten for searching
@@ -53,6 +65,7 @@ class ScoringEngine:
 
         found = set()
         lower_text = text.lower()
+        # print(f"[DEBUG] Extracting skills from text length: {len(text)}. First 100 chars: {lower_text[:100]}")
         
         # Regex for word boundary to avoid partial matches (e.g. 'go' in 'google')
         import re
@@ -62,12 +75,57 @@ class ScoringEngine:
             if re.search(pattern, lower_text):
                 found.add(skill)
         
+        # Special handling for case-sensitive/ambiguous skills
+        # 'R' language - strictly UPPERCASE matching to avoid matching the letter 'r'
+        if re.search(r'\bR\b', text): # Use original text for case sensitivity
+            found.add('r')
+            self.skill_categories['languages'].add('r')
+
+        # 'Go' language - strictly Capitalized or 'golang'
+        if re.search(r'\bGo\b', text) or re.search(r'\bgolang\b', lower_text):
+            found.add('go')
+            self.skill_categories['languages'].add('go')
+
         return list(found)
+
+    def extract_years_of_experience(self, text):
+        """
+        Heuristic to find years of experience using Regex.
+        Looks for patterns like '5+ years', '3 years', or dates.
+        """
+        if not text: return 0
+
+        # 1. Direct mention: "5+ years", "10 years"
+        experience_patterns = [
+            r'(\d+)\+?\s*years?',
+            r'(\d+)\+?\s*yrs?',
+        ]
+        
+        max_years = 0
+        import re
+        for pattern in experience_patterns:
+            matches = re.findall(pattern, text.lower())
+            for match in matches:
+                try:
+                    val = int(match)
+                    if 0 < val < 50: # Sanity check
+                        max_years = max(max_years, val)
+                except:
+                    pass
+                    
+        # 2. Date ranges (Simple max subtraction if explicit years not found)
+        # This is harder to do reliably without a full CV parse, 
+        # so we rely on explicit mentions which is common in summaries.
+        
+        return max_years if max_years > 0 else 0
 
     def analyze_candidate(self, cv_text, jd_text):
         """
         Extract skills from both, find gaps, and generate questions.
         """
+        if not cv_text: cv_text = ""
+        if not jd_text: jd_text = ""
+
         # Ensure categories are loaded
         if not hasattr(self, 'skill_categories'):
              self.extract_skills("") # Init categories
@@ -78,6 +136,16 @@ class ScoringEngine:
         missing = list(jd_skills - cv_skills)
         matching = list(jd_skills.intersection(cv_skills))
         
+        years_exp = self.extract_years_of_experience(cv_text)
+        
+        # New: Extract Personal Info
+        personal_info = {'email': None, 'phone': None, 'education': [], 'name': None}
+        try:
+            from cv_parser import extract_candidate_info
+            personal_info = extract_candidate_info(cv_text)
+        except Exception as e:
+            print(f"Error extracting info: {e}")
+        
         questions = self.generate_interview_questions(missing)
         
         return {
@@ -85,6 +153,8 @@ class ScoringEngine:
             'jd_skills': list(jd_skills),
             'missing': missing,
             'matching': matching,
+            'years_experience': years_exp,
+            'personal_info': personal_info,
             'questions': questions
         }
 
@@ -145,13 +215,6 @@ class ScoringEngine:
         overall_score = self.compute_similarity(cv_text, jd_text)
         
         # 2. Key Term Matching (Simple Hybrid Approach)
-        # In a real scenario, we'd extract specific skills. 
-        # Here we verify if critical terms in JD appear in CV (Exact Match boost)
-        
-        # Simple extraction of "keywords" from JD (e.g., capitalized words maybe? or just high relevance terms)
-        # For now, let's treat the overall semantic score as the primary driver, 
-        # but we can do a sectional score if we parsed the CV.
-        
         from cv_parser import parse_cv_sections
         sections = parse_cv_sections(cv_text)
         

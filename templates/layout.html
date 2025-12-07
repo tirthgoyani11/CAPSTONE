@@ -19,11 +19,37 @@
             <span>NexGen ATS</span>
         </div>
 
+        <div class="user-profile-widget" style="padding: 0 1.5rem; margin-bottom: 1.5rem;">
+            {% if current_user.is_authenticated %}
+            <div
+                style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);">
+                <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 0.2rem;">{{ current_user.name
+                    }}</div>
+                <div
+                    style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.75rem;">
+                    {{ current_user.role }}</div>
+                <a href="{{ url_for('auth.logout') }}"
+                    style="display: flex; align-items: center; gap: 0.5rem; color: #f87171; font-size: 0.85rem; text-decoration: none; transition: 0.2s;">
+                    <i class="fa-solid fa-arrow-right-from-bracket"></i> Logout
+                </a>
+            </div>
+            {% else %}
+            <a href="{{ url_for('auth.login') }}" class="btn-primary"
+                style="width: 100%; justify-content: center; background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);">
+                <i class="fa-solid fa-right-to-bracket" style="margin-right: 0.5rem;"></i> Login
+            </a>
+            {% endif %}
+        </div>
+
         <nav>
+            <!-- Common / Dashboard -->
             <a href="/" class="nav-item {% if request.path == '/' %}active{% endif %}">
                 <i class="fa-solid fa-gauge-high" style="width: 20px;"></i>
                 <span>Dashboard</span>
             </a>
+
+            {% if current_user.is_authenticated and current_user.role == 'recruiter' %}
+            <!-- Recruiter ONLY Links -->
             <a href="/talent_pool" class="nav-item {% if request.path == '/talent_pool' %}active{% endif %}">
                 <i class="fa-solid fa-user-group" style="width: 20px;"></i>
                 <span>Talent Pool</span>
@@ -32,12 +58,29 @@
                 <i class="fa-solid fa-chart-pie" style="width: 20px;"></i>
                 <span>Analytics</span>
             </a>
+            {% endif %}
+
+            {% if current_user.is_authenticated and current_user.role == 'candidate' %}
+            <!-- Candidate ONLY Links -->
+            <a href="/jobs" class="nav-item {% if request.path == '/jobs' %}active{% endif %}">
+                <i class="fa-solid fa-briefcase" style="width: 20px;"></i>
+                <span>Browse Jobs</span>
+            </a>
+            <a href="/profile" class="nav-item {% if request.path == '/profile' %}active{% endif %}">
+                <i class="fa-solid fa-id-card" style="width: 20px;"></i>
+                <span>My Profile</span>
+            </a>
+            {% endif %}
+
             <a href="/settings" class="nav-item {% if request.path == '/settings' %}active{% endif %}">
                 <i class="fa-solid fa-gear" style="width: 20px;"></i>
                 <span>Settings</span>
             </a>
         </nav>
-        <div class="role">Admin</div>
+        <button id="theme-toggle" class="theme-toggle-btn">
+            <i class="fa-solid fa-moon"></i>
+            <span>Dark Mode</span>
+        </button>
     </aside>
 
     <!-- Main Content -->
