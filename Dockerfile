@@ -31,4 +31,4 @@ EXPOSE 5000 10000
 # Define the command to run the application
 # We use Gunicorn for production
 # Workers: 1 (to save RAM on free tier), Threads: 8 (for concurrency)
-CMD gunicorn --bind 0.0.0.0:$PORT app:app --workers 1 --threads 8 --timeout 0
+CMD gunicorn --bind 0.0.0.0:$PORT app:app --workers 1 --threads 8 --timeout 120
