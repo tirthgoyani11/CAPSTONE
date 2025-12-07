@@ -12,20 +12,29 @@ class ScoringEngine:
         Default backbone: NexGen-CV-v1 (Customized Transformer).
         """
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
-        self.model_name = "NexGen-CV-Encoder-v1"
+        
+        # Allow Model Overrides via Environment Variable (Important for Free Tier Scalability)
+        default_model = "all-mpnet-base-v2"
+        self.target_model = os.getenv('AI_MODEL_NAME', default_model)
+        
+        self.model_name = f"NexGen-CV-Encoder-v1 ({self.target_model})"
         self.local_model_path = os.path.join(os.getcwd(), 'models', 'nexgen_cv_engine')
         
         print(f"[{self.model_name}] Initializing Neural Engine on {self.device.upper()}...")
         
-        if os.path.exists(self.local_model_path):
+        # Check if we should ignore local model and force download (e.g. if we switched models)
+        # For simplicity, if AI_MODEL_NAME is set to something else, we ignore local custom weights.
+        
+        if self.target_model == default_model and os.path.exists(self.local_model_path):
             print(f"[{self.model_name}] Loading proprietary weights from local storage...")
             self.model = SentenceTransformer(self.local_model_path, device=self.device)
         else:
-            print(f"[{self.model_name}] First-time setup: Downloading optimized weights (Base: all-mpnet-base-v2)...")
-            # We use all-mpnet-base-v2 as it provides the best semantic quality for this task
-            self.model = SentenceTransformer('all-mpnet-base-v2', device=self.device)
-            print(f"[{self.model_name}] Caching model to {self.local_model_path}...")
-            self.model.save(self.local_model_path)
+            print(f"[{self.model_name}] Model setup: Downloading optimized weights ({self.target_model})...")
+            self.model = SentenceTransformer(self.target_model, device=self.device)
+            # Only cache if it's the default model to avoid polluting structure
+            if self.target_model == default_model:
+                print(f"[{self.model_name}] Caching model to {self.local_model_path}...")
+                self.model.save(self.local_model_path)
             
         print(f"[{self.model_name}] Engine Online. Ready for semantic analysis.")
 
