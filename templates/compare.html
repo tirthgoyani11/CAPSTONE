@@ -1,0 +1,126 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="dashboard-header">
+    <h1>Candidate Comparison</h1>
+    <p style="color: var(--text-secondary);">Side-by-side analysis of selected candidates.</p>
+</div>
+
+<div class="glass-card" style="padding: 2rem; overflow-x: auto;">
+    <div style="display: flex; gap: 2rem; min-width: max-content;">
+
+        <!-- Legend / Labels Column -->
+        <div style="width: 200px; padding-top: 300px; flex-shrink: 0;">
+            <div style="margin-bottom: 2rem; font-weight: 600; color: var(--text-muted);">Total Score</div>
+            <div style="margin-bottom: 2rem; font-weight: 600; color: var(--text-muted);">Experience</div>
+            <div style="margin-bottom: 2rem; font-weight: 600; color: var(--text-muted);">Skills Match</div>
+            <div style="margin-bottom: 2rem; font-weight: 600; color: var(--text-muted);">Semantic Score</div>
+            <div style="margin-bottom: 2rem; font-weight: 600; color: var(--text-muted);">Missing Skills</div>
+        </div>
+
+        {% for candidate in candidates %}
+        <div style="width: 300px; flex-shrink: 0; text-align: center;">
+            <!-- Header -->
+            <div
+                style="margin-bottom: 2rem; height: 280px; display: flex; flex-direction: column; align-items: center; justify-content: flex-end;">
+                <div class="score-circle"
+                    style="--p:{{ candidate.total_score }}; width: 80px; height: 80px; font-size: 1.5rem; margin-bottom: 1rem;">
+                    <span>{{ candidate.total_score|round|int }}%</span>
+                </div>
+                <h3 style="margin: 0.5rem 0; font-size: 1.2rem;">
+                    {{ candidate.name if candidate.name else candidate.filename }}
+                </h3>
+                <div style="display: flex; gap: 0.5rem; justify-content: center; margin-top: 0.5rem;">
+                    <a href="{{ url_for('core.uploaded_file', filename=candidate.filename) }}" target="_blank"
+                        class="btn-secondary" style="padding: 0.2rem 0.5rem; font-size: 0.8rem;">
+                        View CV
+                    </a>
+                </div>
+                <!-- Radar Chart Container -->
+                <div style="height: 150px; width: 100%; margin-top: 1rem;">
+                    <canvas id="radar-{{ candidate.id }}"></canvas>
+                </div>
+            </div>
+
+            <!-- Metrics -->
+            <div
+                style="margin-bottom: 2rem; padding: 1rem; background: rgba(255,255,255,0.05); border-radius: var(--radius);">
+                <span class="text-gradient" style="font-size: 1.5rem; font-weight: 700;">{{ candidate.total_score|round
+                    }}%</span>
+            </div>
+
+            <div style="margin-bottom: 2rem;">
+                <div class="progress-bg">
+                    <div style="width: {{ candidate.experience_score }}%; background: var(--info); height: 100%;"></div>
+                </div>
+                <span style="font-size: 0.9rem;">{{ candidate.experience_score|round }}%</span>
+            </div>
+
+            <div style="margin-bottom: 2rem;">
+                <div class="progress-bg">
+                    <div style="width: {{ candidate.skills_score }}%; background: var(--success); height: 100%;"></div>
+                </div>
+                <span style="font-size: 0.9rem;">{{ candidate.skills_score|round }}%</span>
+            </div>
+
+            <div style="margin-bottom: 2rem;">
+                <div class="progress-bg">
+                    <div style="width: {{ candidate.semantic_score }}%; background: var(--primary); height: 100%;">
+                    </div>
+                </div>
+                <span style="font-size: 0.9rem;">{{ candidate.semantic_score|round }}%</span>
+            </div>
+
+            <div style="text-align: left;">
+                {% if candidate.missing_skills %}
+                {% for skill in candidate.missing_skills|from_json %}
+                <span class="tag missing" style="font-size: 0.75rem;">{{ skill }}</span>
+                {% endfor %}
+                {% else %}
+                <span style="color: var(--text-muted);">None</span>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    {% for candidate in candidates %}
+    new Chart(document.getElementById('radar-{{ candidate.id }}'), {
+        type: 'radar',
+        data: {
+            labels: ['Skills', 'Experience', 'Semantic'],
+            datasets: [{
+                label: 'Score',
+                data: [{{ candidate.skills_score }}, {{ candidate.experience_score }}, {{ candidate.semantic_score }}],
+        fill: true,
+        backgroundColor: 'rgba(99, 102, 241, 0.2)',
+        borderColor: 'rgb(99, 102, 241)',
+        pointBackgroundColor: 'rgb(99, 102, 241)',
+        pointBorderColor: '#fff',
+        pointHoverBackgroundColor: '#fff',
+        pointHoverBorderColor: 'rgb(99, 102, 241)'
+            }]
+        },
+        options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        elements: { line: { borderWidth: 2 } },
+        scales: {
+            r: {
+                angleLines: { color: 'rgba(255, 255, 255, 0.1)' },
+                grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                pointLabels: { color: '#94a3b8', font: { size: 10 } },
+                ticks: { display: false, backdropColor: 'transparent' },
+                suggestedMin: 0,
+                suggestedMax: 100
+            }
+        },
+        plugins: { legend: { display: false } }
+    }
+    });
+    {% endfor %}
+</script>
+{% endblock %}

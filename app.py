@@ -10,6 +10,20 @@ app.config['SECRET_KEY'] = 'dev-secret-key-change-in-prod' # Required for sessio
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+
+# Custom Jinja2 Filters
+import json
+
+@app.template_filter('from_json')
+def from_json_filter(value):
+    """Parse a JSON string into a Python object."""
+    if not value:
+        return []
+    try:
+        return json.loads(value)
+    except (json.JSONDecodeError, TypeError):
+        return []
+
 database.init_db()
 
 # Initialize Authentication
@@ -31,6 +45,9 @@ app.register_blueprint(core.bp)
 app.register_blueprint(talent_pool.bp)
 app.register_blueprint(analytics.bp)
 app.register_blueprint(settings.bp)
+
+from routes import export_routes
+app.register_blueprint(export_routes.bp)
 
 # Global error handlers or context processors can go here
 

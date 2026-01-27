@@ -43,6 +43,32 @@ def index():
             c = conn.execute("SELECT COUNT(*) FROM candidates WHERE status = ?", (st,)).fetchone()[0]
         status_counts.append(c)
 
+    # 4. Market Insights: Top Skills (Skills Gap)
+    import json
+    skill_gap_counts = {}
+    candidates_data = conn.execute("SELECT missing_skills FROM candidates").fetchall()
+    
+    for row in candidates_data:
+        if row['missing_skills']:
+            try:
+                missing = json.loads(row['missing_skills'])
+                for m in missing:
+                    skill_gap_counts[m] = skill_gap_counts.get(m, 0) + 1
+            except:
+                pass
+                
+    # Sort and get top 10
+    sorted_gaps = sorted(skill_gap_counts.items(), key=lambda x: x[1], reverse=True)[:10]
+    gap_labels = [x[0] for x in sorted_gaps]
+    gap_counts = [x[1] for x in sorted_gaps]
+
+    # 5. Additional Metrics
+    total_candidates = conn.execute("SELECT COUNT(*) FROM candidates").fetchone()[0]
+    total_jobs = conn.execute("SELECT COUNT(*) FROM jobs WHERE status = 'Open'").fetchone()[0]
+    avg_score_row = conn.execute("SELECT AVG(total_score) FROM candidates").fetchone()
+    avg_score = round(avg_score_row[0], 1) if avg_score_row and avg_score_row[0] else 0
+    hired_count = conn.execute("SELECT COUNT(*) FROM candidates WHERE status = 'Hired'").fetchone()[0]
+
     conn.close()
     
     return render_template('analytics.html', 
@@ -50,4 +76,10 @@ def index():
                            job_counts=job_counts,
                            score_buckets=score_buckets,
                            pipeline_labels=statuses,
-                           pipeline_counts=status_counts)
+                           pipeline_counts=status_counts,
+                           gap_labels=gap_labels,
+                           gap_counts=gap_counts,
+                           total_candidates=total_candidates,
+                           total_jobs=total_jobs,
+                           avg_score=avg_score,
+                           hired_count=hired_count)

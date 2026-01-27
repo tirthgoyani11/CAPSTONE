@@ -208,55 +208,66 @@ class ScoringEngine:
         return questions[:4] # Return top 4 unique questions
 
     def score_cv(self, cv_text, jd_text, weights=None):
-
         """
-        Compute a comprehensive score for the CV against the JD.
+        Compute a comprehensive 'Smart Score' for the CV against the JD.
+        Hybrid Approach: Semantic (AI) + Explicit Skill Match + Experience Match.
         """
         if weights is None:
-            # Default weights
+            # Tuned weights for better accuracy
             weights = {
-                'overall_similarity': 0.5,
-                'skills': 0.3, # We will try to extract skills specifically if possible
-                'experience': 0.2
+                'semantic': 0.60,
+                'skills': 0.30,
+                'experience': 0.10
             }
         
-        # 1. Overall Semantic Match (The core "AI" score)
-        overall_score = self.compute_similarity(cv_text, jd_text)
+        # 1. Analyze Core Data First
+        data = self.analyze_candidate(cv_text, jd_text)
         
-        # 2. Key Term Matching (Simple Hybrid Approach)
-        from cv_parser import parse_cv_sections
-        sections = parse_cv_sections(cv_text)
+        # 2. Semantic Score (The "Vibe" / Context match)
+        semantic_score = self.compute_similarity(cv_text, jd_text)
+        semantic_score = max(0, min(1, semantic_score)) # Clamp 0-1
         
-        # Skill Score: Compare CV 'skills' section specifically to JD
-        if sections.get('skills') and len(sections['skills']) > 20: 
-             skill_score = self.compute_similarity(sections['skills'], jd_text)
+        # 3. Explicit Skill Score (The "hard requirements" match)
+        # Calculate overlap percentage
+        matched_count = len(data['matching'])
+        total_jd_skills = len(data['jd_skills'])
+        
+        if total_jd_skills > 0:
+            skill_score = matched_count / total_jd_skills
         else:
-            # Fallback if no skills section detected, use overall
-            skill_score = overall_score
+            # If JD has no detectable skills, fallback to semantic score for this portion
+            skill_score = semantic_score
             
-        # Experience Score: Compare CV 'experience' section to JD
-        if sections.get('experience') and len(sections['experience']) > 20:
-            experience_score = self.compute_similarity(sections['experience'], jd_text)
+        # 4. Experience Score
+        # We don't have JD experience requirement parsing yet, so we assume:
+        # > 5 years = 100%, > 2 years = 70%, < 2 years = 40% (Heuristic)
+        #Ideally this should be parsed from JD.
+        exp_years = data['years_experience']
+        if exp_years >= 5:
+            exp_score = 1.0
+        elif exp_years >= 2:
+            exp_score = 0.7
+        elif exp_years >= 1:
+            exp_score = 0.5
         else:
-            experience_score = overall_score
+            exp_score = 0.3
 
-        # Weighted Total
-        # Normalize scores (they are cosine sim -1 to 1, but usually 0 to 1 for text)
-        overall_score = max(0, overall_score)
-        skill_score = max(0, skill_score)
-        experience_score = max(0, experience_score)
-        
+        # 5. Weighted Total
         total_score = (
-            (overall_score * weights.get('overall_similarity', 0.5)) +
-            (skill_score * weights.get('skills', 0.3)) +
-            (experience_score * weights.get('experience', 0.2))
+            (semantic_score * weights['semantic']) +
+            (skill_score * weights['skills']) +
+            (exp_score * weights['experience'])
         )
         
         return {
-            "total_score": round(total_score * 100, 2),
+            "total_score": round(total_score * 100, 1), # One decimal place
             "breakdown": {
-                "semantic_match": round(overall_score * 100, 2),
-                "skills_match": round(skill_score * 100, 2),
-                "experience_match": round(experience_score * 100, 2)
-            }
+                "semantic_match": round(semantic_score * 100, 1),
+                "skills_match": round(skill_score * 100, 1),
+                "experience_match": round(exp_score * 100, 1),
+                "matched_skills": data['matching'],
+                "missing_skills": data['missing'],
+                "years_experience": exp_years
+            },
+            "analysis": data # Include full analysis for the UI
         }

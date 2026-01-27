@@ -1,96 +1,307 @@
 {% extends "layout.html" %}
 
 {% block content %}
-<div class="dashboard-header">
-    <h1>Analytics Overview</h1>
+<div class="dashboard-header" style="margin-bottom: 2rem;">
+    <div>
+        <h1 class="text-gradient">Analytics Dashboard</h1>
+        <p class="dashboard-subtitle">Insights and metrics for your recruitment pipeline</p>
+    </div>
 </div>
 
-<div class="stats-grid" style="grid-template-columns: 1fr 1fr;">
-    <div class="glass-card" style="height: 400px; padding: 1.5rem;">
-        <h3 style="margin-bottom: 1.5rem;">Candidates per Job</h3>
-        <canvas id="jobChart"></canvas>
+<!-- Key Metrics Cards -->
+<div class="analytics-metrics"
+    style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 2rem;">
+    <div class="metric-card">
+        <div class="metric-icon" style="background: rgba(99, 102, 241, 0.1); color: var(--primary);">
+            <i class="fa-solid fa-users"></i>
+        </div>
+        <div class="metric-info">
+            <div class="metric-value">{{ total_candidates }}</div>
+            <div class="metric-label">Total Candidates</div>
+        </div>
     </div>
-    <div class="glass-card" style="height: 400px; padding: 1.5rem;">
-        <h3 style="margin-bottom: 1.5rem;">Score Distribution</h3>
-        <canvas id="scoreChart"></canvas>
+    <div class="metric-card">
+        <div class="metric-icon" style="background: rgba(16, 185, 129, 0.1); color: var(--success);">
+            <i class="fa-solid fa-briefcase"></i>
+        </div>
+        <div class="metric-info">
+            <div class="metric-value">{{ total_jobs }}</div>
+            <div class="metric-label">Active Jobs</div>
+        </div>
+    </div>
+    <div class="metric-card">
+        <div class="metric-icon" style="background: rgba(245, 158, 11, 0.1); color: var(--warning);">
+            <i class="fa-solid fa-chart-line"></i>
+        </div>
+        <div class="metric-info">
+            <div class="metric-value">{{ avg_score }}%</div>
+            <div class="metric-label">Avg Match Score</div>
+        </div>
+    </div>
+    <div class="metric-card">
+        <div class="metric-icon" style="background: rgba(168, 85, 247, 0.1); color: #a855f7;">
+            <i class="fa-solid fa-user-check"></i>
+        </div>
+        <div class="metric-info">
+            <div class="metric-value">{{ hired_count }}</div>
+            <div class="metric-label">Hired This Month</div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Grid -->
+<div class="charts-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
+    <div class="glass-card chart-card">
+        <div class="chart-header">
+            <h3><i class="fa-solid fa-chart-bar"></i> Candidates per Job</h3>
+        </div>
+        <div class="chart-body">
+            <canvas id="jobChart"></canvas>
+        </div>
     </div>
 
-    <!-- New Pipeline Funnel -->
-    <div class="glass-card" style="grid-column: span 2; height: 400px; padding: 1.5rem;">
-        <h3 style="margin-bottom: 1.5rem;">Recruitment Pipeline Funnel</h3>
+    <div class="glass-card chart-card">
+        <div class="chart-header">
+            <h3><i class="fa-solid fa-chart-pie"></i> Score Distribution</h3>
+        </div>
+        <div class="chart-body">
+            <canvas id="scoreChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Full Width Charts -->
+<div class="glass-card chart-card" style="margin-bottom: 1.5rem;">
+    <div class="chart-header">
+        <h3><i class="fa-solid fa-filter"></i> Recruitment Pipeline Funnel</h3>
+    </div>
+    <div class="chart-body" style="height: 300px;">
         <canvas id="pipelineChart"></canvas>
     </div>
 </div>
 
+<!-- Skills Gap Analysis -->
+{% if gap_labels %}
+<div class="glass-card chart-card">
+    <div class="chart-header">
+        <h3><i class="fa-solid fa-puzzle-piece"></i> Top Missing Skills</h3>
+        <span class="badge-info">Skill Gap Analysis</span>
+    </div>
+    <div class="chart-body" style="height: 300px;">
+        <canvas id="skillGapChart"></canvas>
+    </div>
+</div>
+{% endif %}
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    // Job Distribution Chart
+    // Chart color theme
+    const chartColors = {
+        primary: '#6366f1',
+        success: '#10b981',
+        warning: '#f59e0b',
+        danger: '#ef4444',
+        purple: '#a855f7',
+        pink: '#ec4899',
+        grid: 'rgba(255,255,255,0.1)',
+        text: '#94a3b8'
+    };
+
+    // Data from server
+    var jobLabels = {{ job_labels | tojson | safe }};
+    var jobCounts = {{ job_counts | tojson | safe }};
+    var scoreBuckets = {{ score_buckets | tojson | safe }};
+    var pipelineLabels = {{ pipeline_labels | tojson | safe }};
+    var pipelineCounts = {{ pipeline_counts | tojson | safe }};
+    var gapLabels = {{ gap_labels | tojson | safe }};
+    var gapCounts = {{ gap_counts | tojson | safe }};
+
+    // Candidates per Job Chart
     new Chart(document.getElementById('jobChart'), {
         type: 'bar',
         data: {
-            labels: {{ job_labels | tojson }},
+            labels: jobLabels,
             datasets: [{
                 label: 'Candidates',
-                data: {{ job_counts | tojson }},
-                backgroundColor: '#6366f1'
+                data: jobCounts,
+                backgroundColor: chartColors.primary,
+                borderRadius: 6,
+                maxBarThickness: 50
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
             scales: {
-                y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.1)' } },
-                x: { grid: { display: false } }
+                y: { beginAtZero: true, grid: { color: chartColors.grid }, ticks: { color: chartColors.text } },
+                x: { grid: { display: false }, ticks: { color: chartColors.text } }
             },
             plugins: { legend: { display: false } }
         }
     });
 
-    // Score Distribution Chart
+    // Score Distribution Doughnut
     new Chart(document.getElementById('scoreChart'), {
         type: 'doughnut',
         data: {
             labels: ['Low (<50%)', 'Medium (50-79%)', 'High (80%+)'],
             datasets: [{
-                data: {{ score_buckets | tojson }},
-                backgroundColor: ['#ef4444', '#f59e0b', '#10b981'],
-                borderWidth: 0
+                data: scoreBuckets,
+                backgroundColor: [chartColors.danger, chartColors.warning, chartColors.success],
+                borderWidth: 0,
+                cutout: '65%'
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8' } } }
+            plugins: {
+                legend: { position: 'bottom', labels: { color: chartColors.text, padding: 20 } }
+            }
         }
     });
 
-    // Pipeline Funnel Chart (New)
+    // Pipeline Funnel
     new Chart(document.getElementById('pipelineChart'), {
         type: 'bar',
         data: {
-            labels: {{ pipeline_labels | tojson }},
+            labels: pipelineLabels,
             datasets: [{
-                label: 'Count',
-                data: {{ pipeline_counts | tojson }},
-                backgroundColor: [
-                    '#94a3b8', // Applied
-                    '#6366f1', // Screening
-                    '#a855f7', // Interview
-                    '#10b981', // Offer
-                    '#f87171'  // Rejected
-                ],
+                label: 'Candidates',
+                data: pipelineCounts,
+                backgroundColor: [chartColors.text, chartColors.primary, chartColors.purple, chartColors.success, chartColors.danger],
                 borderRadius: 6
             }]
         },
         options: {
-            indexAxis: 'y', // Horizontal Bar
+            indexAxis: 'y',
             responsive: true,
             maintainAspectRatio: false,
             scales: {
-                x: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.1)' } },
-                y: { grid: { display: false }, ticks: { color: '#e2e8f0' } }
+                x: { beginAtZero: true, grid: { color: chartColors.grid }, ticks: { color: chartColors.text } },
+                y: { grid: { display: false }, ticks: { color: '#e2e8f0', font: { size: 14 } } }
             },
             plugins: { legend: { display: false } }
         }
     });
+
+    // Skills Gap Chart
+    if (gapLabels && gapLabels.length > 0) {
+        new Chart(document.getElementById('skillGapChart'), {
+            type: 'bar',
+            data: {
+                labels: gapLabels,
+                datasets: [{
+                    label: 'Missing Count',
+                    data: gapCounts,
+                    backgroundColor: chartColors.pink,
+                    borderRadius: 4,
+                    maxBarThickness: 40
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { beginAtZero: true, grid: { color: chartColors.grid }, ticks: { color: chartColors.text } },
+                    x: { grid: { display: false }, ticks: { color: chartColors.text } }
+                },
+                plugins: { legend: { display: false } }
+            }
+        });
+    }
 </script>
+
+<style>
+    .metric-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        padding: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        transition: all 0.2s;
+    }
+
+    .metric-card:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-lg);
+    }
+
+    .metric-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+    }
+
+    .metric-value {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: var(--text-primary);
+    }
+
+    .metric-label {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+    }
+
+    .chart-card {
+        padding: 0;
+        overflow: hidden;
+    }
+
+    .chart-header {
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .chart-header h3 {
+        margin: 0;
+        font-size: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .chart-header h3 i {
+        color: var(--text-muted);
+    }
+
+    .chart-body {
+        padding: 1.5rem;
+        height: 280px;
+    }
+
+    .badge-info {
+        background: rgba(99, 102, 241, 0.1);
+        color: var(--primary);
+        padding: 0.25rem 0.75rem;
+        border-radius: 999px;
+        font-size: 0.75rem;
+    }
+
+    @media (max-width: 1024px) {
+        .analytics-metrics {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .charts-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .analytics-metrics {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
 {% endblock %}

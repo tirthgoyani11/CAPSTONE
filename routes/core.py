@@ -76,7 +76,11 @@ def dashboard():
     avg_score = round(avg_score_row[0], 1) if avg_score_row and avg_score_row[0] else 0
     
     conn.close()
-    return render_template('dashboard.html', jobs=jobs, total_candidates=total_candidates, avg_score=avg_score)
+    
+    from datetime import datetime
+    current_date = datetime.now().strftime('%A, %B %d, %Y')
+    
+    return render_template('dashboard.html', jobs=jobs, total_candidates=total_candidates, avg_score=avg_score, current_date=current_date)
 
 @bp.route('/jobs/<int:job_id>')
 @login_required
@@ -131,11 +135,11 @@ def upload_cvs(job_id):
         try:
             cv_text = extract_text(path)
             score_data = engine.score_cv(cv_text, job['description'], weights)
-            analysis = engine.analyze_candidate(cv_text, job['description'])
+            analysis = score_data['analysis'] # Use the analysis from scoring
             
             conn.execute('''INSERT INTO candidates 
-                            (job_id, filename, semantic_score, skills_score, experience_score, total_score, full_text, missing_skills, interview_questions, user_id)
-                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''', 
+                            (job_id, filename, semantic_score, skills_score, experience_score, total_score, full_text, missing_skills, interview_questions, user_id, name, email, phone)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''', 
                             (job_id, filename, 
                              score_data['breakdown']['semantic_match'],
                              score_data['breakdown']['skills_match'],
@@ -144,7 +148,10 @@ def upload_cvs(job_id):
                              cv_text,
                              json.dumps(analysis['missing']),
                              json.dumps(analysis['questions']),
-                             user_id # Add user_id
+                             user_id,
+                             analysis['personal_info'].get('name'),
+                             analysis['personal_info'].get('email'),
+                             analysis['personal_info'].get('phone')
                             ))
         except Exception as e:
             print(f"Error processing {filename}: {e}")
@@ -203,7 +210,7 @@ def candidate_modal(candidate_id):
         print(f"Personal Info: {analysis.get('personal_info')}")
 
         return jsonify({
-            'html': render_template('candidate_modal.html', candidate=candidate, analysis=analysis)
+            'html': render_template('candidate_modal.html', candidate=candidate, analysis=analysis, job_title=job['title'])
         })
     except Exception as e:
         print("CRITICAL ERROR in candidate_modal:")
@@ -365,7 +372,6 @@ def easy_apply(job_id):
         return jsonify({'error': 'Only candidates can apply'}), 403
         
     conn = database.get_db_connection()
-    conn = database.get_db_connection()
     user = conn.execute('SELECT * FROM users WHERE id = ?', (current_user.id,)).fetchone()
     
     if not user['resume_path']:
@@ -394,8 +400,10 @@ def easy_apply(job_id):
     cv_text = extract_text(cv_path)
     job = conn.execute('SELECT * FROM jobs WHERE id = ?', (job_id,)).fetchone()
     
-    # Analyze
-    analysis = engine.analyze_candidate(cv_text, job['description'])
+    # Generate scores
+    weights = {'semantic': 0.6, 'skills': 0.3, 'experience': 0.1} # Sync with default in scoring_engine
+    score_data = engine.score_cv(cv_text, job['description'], weights)
+    analysis = score_data['analysis']
     
     # Insert Candidate
     conn.execute('''
@@ -410,11 +418,11 @@ def easy_apply(job_id):
         user['email'], 
         analysis['personal_info'].get('phone', 'N/A'), 
         user['resume_path'], # Filename
-        analysis['scores']['skills'],
-        analysis['scores']['experience'],
-        analysis['scores']['semantic'],
-        analysis['scores']['total'],
-        json.dumps(analysis['missing_skills']),
+        score_data['breakdown']['skills_match'],
+        score_data['breakdown']['experience_match'],
+        score_data['breakdown']['semantic_match'],
+        score_data['total_score'],
+        json.dumps(analysis['missing']),
         current_user.id
     ))
     conn.commit()
@@ -497,40 +505,73 @@ def generate_offer(candidate_id):
                            terms=terms,
                            today=today,
                            expiry_date=expiry)
-    
-    if not user['resume_path']:
-        conn.close()
-        return jsonify({'error': 'No profile found. Please upload a Master Resume first.'}), 400
-        
-    # Re-use existing analysis logic
-    job = conn.execute('SELECT * FROM jobs WHERE id = ?', (job_id,)).fetchone()
-    path = os.path.join(current_app.config['UPLOAD_FOLDER'], user['resume_path'])
-    
+
+@bp.route('/quick_scan')
+@login_required
+@role_required('recruiter')
+def quick_scan():
+    return render_template('index.html')
+
+@bp.route('/analyze', methods=['POST'])
+@login_required
+@role_required('recruiter')
+def analyze():
+    import traceback
     try:
-        cv_text = extract_text(path)
-        # Weights
-        weights = {'overall_similarity': 0.5, 'skills': 0.3, 'experience': 0.2}
+        jd_file = request.files.get('jd')
+        cv_files = request.files.getlist('cvs')
         
-        score_data = engine.score_cv(cv_text, job['description'], weights)
-        analysis = engine.analyze_candidate(cv_text, job['description'])
+        # Get Weights
+        w_overall = float(request.form.get('weight_overall', 0.5))
+        w_skills = float(request.form.get('weight_skills', 0.3))
+        w_exp = float(request.form.get('weight_experience', 0.2))
         
-        conn.execute('''INSERT INTO candidates 
-                        (job_id, filename, semantic_score, skills_score, experience_score, total_score, full_text, missing_skills, interview_questions, user_id)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''', 
-                        (job_id, user['resume_path'], 
-                         score_data['breakdown']['semantic_match'],
-                         score_data['breakdown']['skills_match'],
-                         score_data['breakdown']['experience_match'],
-                         score_data['total_score'],
-                         cv_text,
-                         json.dumps(analysis['missing']),
-                         json.dumps(analysis['questions']),
-                         current_user.id
-                        ))
-        conn.commit()
-        conn.close()
-        return redirect(url_for('core.dashboard'))
+        weights = {
+            'overall_similarity': w_overall,
+            'skills': w_skills,
+            'experience': w_exp
+        }
+        
+        # Process JD
+        jd_text = ""
+        if jd_file:
+            # We don't save these to DB in quick scan, but we might need to save temp file to extract text
+            filename = secure_filename(jd_file.filename)
+            path = os.path.join(current_app.config['UPLOAD_FOLDER'], 'temp_jd_' + filename)
+            jd_file.save(path)
+            jd_text = extract_text(path)
+            # Cleanup ideally
+        
+        results = []
+        
+        for cv in cv_files:
+            if cv.filename == '': continue
+            filename = secure_filename(cv.filename)
+            cv_path = os.path.join(current_app.config['UPLOAD_FOLDER'], 'temp_cv_' + filename)
+            cv.save(cv_path)
+            
+            cv_text = extract_text(cv_path)
+            
+            # Score
+            score_data = engine.score_cv(cv_text, jd_text, weights)
+            analysis = score_data['analysis']
+            
+            # Construct Result Object (No DB interaction)
+            results.append({
+                'filename': filename,
+                'total_score': round(score_data['total_score'], 1),
+                'semantic_score': round(score_data['breakdown']['semantic_match'], 1),
+                'skills_score': round(score_data['breakdown']['skills_match'], 1),
+                'experience_score': round(score_data['breakdown']['experience_match'], 1),
+                'missing_skills': analysis['missing'],
+                'years_experience': analysis['personal_info'].get('years_experience', 0)
+            })
+            
+        # Sort by score
+        results.sort(key=lambda x: x['total_score'], reverse=True)
+        
+        return jsonify({'results': results})
         
     except Exception as e:
-        conn.close()
-        return f"Error applying: {str(e)}", 500
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500

@@ -15,8 +15,8 @@
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
             <div>
                 <label style="display: block; color: var(--text-muted); margin-bottom: 0.5rem;">Candidate Name</label>
-                <input type="text" value="{{ candidate.name }}" disabled
-                    style="width: 100%; padding: 0.8rem; background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: var(--text-muted); border-radius: var(--radius);">
+                <input type="text" name="candidate_name" value="{{ candidate.name }}" required
+                    style="width: 100%; padding: 0.8rem; background: var(--bg-dashboard); border: 1px solid var(--border); color: var(--text-primary); border-radius: var(--radius);">
             </div>
             <div>
                 <label style="display: block; color: var(--text-muted); margin-bottom: 0.5rem;">Job Title</label>

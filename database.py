@@ -42,6 +42,11 @@ def init_db():
                         email TEXT UNIQUE NOT NULL,
                         password_hash TEXT NOT NULL,
                         role TEXT DEFAULT 'candidate',
+                        resume_path TEXT,
+                        skills TEXT,
+                        experience TEXT,
+                        education TEXT,
+                        profile_summary TEXT,
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     )''')
 
@@ -59,6 +64,8 @@ def init_db():
                         full_text TEXT,
                         missing_skills TEXT,
                         interview_questions TEXT,
+                        notes TEXT,
+                        status TEXT DEFAULT 'Applied',
                         user_id INTEGER REFERENCES users(id),
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     )''')
@@ -95,6 +102,7 @@ def init_db():
                         full_text TEXT,
                         missing_skills TEXT,
                         interview_questions TEXT,
+                        notes TEXT, -- New Column
                         user_id INTEGER, -- Link to User table
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         FOREIGN KEY(job_id) REFERENCES jobs(id),
@@ -107,12 +115,83 @@ def init_db():
                         email TEXT UNIQUE NOT NULL,
                         password_hash TEXT NOT NULL,
                         role TEXT DEFAULT 'candidate', -- recruiter, candidate, admin
+                        resume_path TEXT,
+                        skills TEXT,
+                        experience TEXT,
+                        education TEXT,
+                        profile_summary TEXT,
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     )''')
         
+        # Simple Migration for missing columns (Quick Fix for dev)
+        # Candidates table migrations
+        try:
+            c.execute("ALTER TABLE candidates ADD COLUMN notes TEXT")
+        except sqlite3.OperationalError:
+            pass # Already exists
+            
+        try:
+            c.execute("ALTER TABLE candidates ADD COLUMN status TEXT DEFAULT 'Applied'")
+        except sqlite3.OperationalError:
+            pass # Already exists
+            
+        # Users table migrations
+        try:
+            c.execute("ALTER TABLE users ADD COLUMN resume_path TEXT")
+        except sqlite3.OperationalError:
+            pass
+            
+        try:
+            c.execute("ALTER TABLE users ADD COLUMN skills TEXT")
+        except sqlite3.OperationalError:
+            pass
+            
+        try:
+            c.execute("ALTER TABLE users ADD COLUMN experience TEXT")
+        except sqlite3.OperationalError:
+            pass
+            
+        try:
+            c.execute("ALTER TABLE users ADD COLUMN education TEXT")
+        except sqlite3.OperationalError:
+            pass
+            
+        try:
+            c.execute("ALTER TABLE users ADD COLUMN profile_summary TEXT")
+        except sqlite3.OperationalError:
+            pass
+            
         conn.commit()
         conn.close()
         print("Initialized SQLite Database.")
+
+def get_all_candidates(user_id=None):
+    conn = get_db_connection()
+    # Join with jobs to get job title
+    query = '''
+        SELECT c.*, j.title as job_role
+        FROM candidates c
+        LEFT JOIN jobs j ON c.job_id = j.id
+    '''
+    params = []
+    # If user_id is provided, filtering logic could go here depending on requirements
+    # For now returning all for recruiter visibility
+    
+    candidates = conn.execute(query, params).fetchall()
+    conn.close()
+    return candidates
+
+def get_candidate(candidate_id):
+    conn = get_db_connection()
+    cand = conn.execute('SELECT * FROM candidates WHERE id = ?', (candidate_id,)).fetchone()
+    conn.close()
+    return cand
+
+def add_candidate_note(candidate_id, note):
+    conn = get_db_connection()
+    conn.execute('UPDATE candidates SET notes = ? WHERE id = ?', (note, candidate_id))
+    conn.commit()
+    conn.close()
 
 
 # User Class for Flask-Login

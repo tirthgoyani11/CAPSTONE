@@ -1,33 +1,114 @@
-<div class="modal-header glass-effect" style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+<!-- Candidate Modal (Refined UI) -->
+<style>
+    .modal-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.5rem;
+    }
+
+    @media (max-width: 768px) {
+        .modal-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .info-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .info-row:last-child {
+        border-bottom: none;
+    }
+
+    .info-label {
+        color: var(--text-muted);
+        font-size: 0.9rem;
+    }
+
+    .info-value {
+        color: var(--text-primary);
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .skill-section {
+        margin-bottom: 1.5rem;
+    }
+
+    .skill-title {
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        letter-spacing: 0.05em;
+        margin-bottom: 0.75rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    /* Animated entry */
+    .animate-in {
+        animation: fadeIn 0.3s ease-out forwards;
+    }
+
+    /* Edit Overlay */
+    .edit-overlay {
+        background: var(--bg-card);
+        border-bottom: 1px solid var(--border);
+        padding: 1.5rem;
+        display: none;
+        animation: fadeIn 0.2s ease;
+    }
+
+    .edit-overlay.active {
+        display: block;
+    }
+</style>
+
+<div class="modal-header glass-effect">
     <div style="display: flex; align-items: center; gap: 1.5rem;">
+        <!-- Score Circle with Glow -->
         <div class="score-circle"
-            style="--p:{{ candidate.total_score }}; --c:{% if candidate.total_score > 80 %}#10b981{% elif candidate.total_score > 50 %}#f59e0b{% else %}#ef4444{% endif %}; width: 64px; height: 64px; font-size: 1.25rem; box-shadow: 0 0 20px rgba(99, 102, 241, 0.3);">
+            style="--p:{{ candidate.total_score }}; --c:{% if candidate.total_score > 80 %}#10b981{% elif candidate.total_score > 50 %}#f59e0b{% else %}#ef4444{% endif %}; width: 68px; height: 68px; font-size: 1.2rem; box-shadow: 0 0 25px rgba(99, 102, 241, 0.25);">
             <span>{{ candidate.total_score|round|int }}%</span>
         </div>
-        <div>
-            <h2 class="text-gradient-adaptive" style="margin:0; font-size: 1.5rem;">
-                {{ analysis.personal_info.name if analysis.personal_info and analysis.personal_info.name else
-                candidate.filename }}
-            </h2>
-            <div style="display: flex; align-items: center; gap: 0.75rem; margin-top: 0.25rem;">
-                <span style="color: var(--info); font-size: 0.9rem; font-weight: 500; letter-spacing: 0.5px;">AI POWERED
-                    ANALYSIS</span>
 
-                <a href="{{ url_for('core.uploaded_file', filename=candidate.filename) }}" target="_blank" class="tag"
-                    style="background: rgba(99, 102, 241, 0.2); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.4); font-size: 0.75rem; margin: 0; text-decoration: none; cursor: pointer;">
-                    <i class="fa-solid fa-file-pdf" style="margin-right: 0.3rem;"></i> View CV
+        <div>
+            <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 0.25rem;">
+                <h2 class="text-gradient" style="margin:0; font-size: 1.75rem; line-height: 1.2;">
+                    {{ candidate.name if candidate.name else (analysis.personal_info.name if analysis.personal_info and
+                    analysis.personal_info.name else candidate.filename) }}
+                </h2>
+                <button onclick="toggleEditMode()" class="btn-secondary"
+                    style="padding: 0.25rem 0.75rem; font-size: 0.75rem; height: auto;">
+                    <i class="fa-solid fa-pen"></i> Edit
+                </button>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                <span
+                    style="background: linear-gradient(90deg, var(--primary) 0%, #818cf8 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 700; font-size: 0.8rem; letter-spacing: 1px;">
+                    AI ANALYSIS
+                </span>
+
+                <div style="height: 4px; width: 4px; background: var(--text-muted); border-radius: 50%; opacity: 0.5;">
+                </div>
+
+                <a href="{{ url_for('core.uploaded_file', filename=candidate.filename) }}" target="_blank"
+                    style="color: var(--primary); text-decoration: none; font-size: 0.85rem; display: flex; align-items: center; gap: 0.35rem; transition: opacity 0.2s;">
+                    <i class="fa-solid fa-file-pdf"></i> View Resume
                 </a>
 
                 {% if analysis and analysis.years_experience > 0 %}
-                <span class="tag"
-                    style="background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); font-size: 0.75rem; margin: 0;">
-                    <i class="fa-solid fa-briefcase" style="margin-right: 0.3rem;"></i> {{ analysis.years_experience }}
-                    Years Exp.
-                </span>
-                {% else %}
-                <span class="tag"
-                    style="background: rgba(148, 163, 184, 0.15); color: #cbd5e1; border: 1px solid rgba(148, 163, 184, 0.3); font-size: 0.75rem; margin: 0;">
-                    <i class="fa-solid fa-graduation-cap" style="margin-right: 0.3rem;"></i> Fresh / Entry Level
+                <div style="height: 4px; width: 4px; background: var(--text-muted); border-radius: 50%; opacity: 0.5;">
+                </div>
+                <span class="status-pill open" style="padding: 0.1rem 0.6rem; font-size: 0.75rem;">
+                    {{ analysis.years_experience }} Yrs Exp
                 </span>
                 {% endif %}
             </div>
@@ -36,55 +117,88 @@
     <button onclick="closeModal()" class="btn-close">&times;</button>
 </div>
 
-<div class="modal-body" style="padding: 2rem;">
-    <!-- Hidden Data Container for Chart.js -->
+<!-- Edit Form (Toggled) -->
+<div id="edit-form-container" class="edit-overlay">
+    <form action="/talent_pool/udpate/{{ candidate.id }}" method="POST"
+        style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; align-items: end;">
+        <div>
+            <label class="info-label" style="display: block; margin-bottom: 0.4rem;">Full Name</label>
+            <input type="text" name="name"
+                value="{{ candidate.name if candidate.name else (analysis.personal_info.name if analysis.personal_info.name else '') }}">
+        </div>
+        <div>
+            <label class="info-label" style="display: block; margin-bottom: 0.4rem;">Email</label>
+            <input type="text" name="email"
+                value="{{ candidate.email if candidate.email else (analysis.personal_info.email if analysis.personal_info.email else '') }}">
+        </div>
+        <div>
+            <label class="info-label" style="display: block; margin-bottom: 0.4rem;">Phone</label>
+            <input type="text" name="phone"
+                value="{{ candidate.phone if candidate.phone else (analysis.personal_info.phone if analysis.personal_info.phone else '') }}">
+        </div>
+        <button type="submit" class="btn-primary" style="height: 42px;">
+            <i class="fa-solid fa-save"></i> Save Changes
+        </button>
+    </form>
+</div>
+
+<div class="modal-body">
     <div id="chart-data" data-semantic="{{ candidate.semantic_score }}" data-skills="{{ candidate.skills_score }}"
         data-experience="{{ candidate.experience_score }}" data-total="{{ candidate.total_score }}"
         style="display: none;"></div>
 
-    <div class="modal-grid" style="display: grid; grid-template-columns: 1.8fr 1.2fr; gap: 2.5rem;">
+    <!-- UPPER SECTION: Stats & Info -->
+    <div class="modal-grid animate-in" style="margin-bottom: 2rem;">
 
-        <!-- Left Column: Detailed Analysis -->
-        <div class="analysis-col">
+        <!-- Left: Match Radar -->
+        <div class="glass-card"
+            style="padding: 1.5rem; display: flex; flex-direction: column; align-items: center; text-align: center; position: relative; overflow: hidden;">
+            <div
+                style="position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, var(--primary), var(--info));">
+            </div>
+            <h4 style="margin-bottom: 1.5rem; font-size: 1rem; opacity: 0.9;">Match Analysis Radar</h4>
+            <div
+                style="width: 100%; max-width: 300px; flex-grow: 1; display: flex; align-items: center; justify-content: center;">
+                <canvas id="skillsRadar"></canvas>
+            </div>
+        </div>
 
-            <!-- Contact & Info Section (NEW) -->
-            <div class="glass-card nested-card"
-                style="padding: 1.5rem; margin-bottom: 2rem; border-left: 3px solid var(--info);">
-                <h4
-                    style="font-size: 0.85rem; text-transform: uppercase; color: var(--text-muted); margin-bottom: 1rem; letter-spacing: 0.05em;">
-                    <i class="fa-solid fa-user-circle text-info" style="margin-right: 0.5rem;"></i> Candidate Details
-                </h4>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; font-size: 0.95rem;">
-                    <div>
-                        <span
-                            style="display: block; color: var(--text-muted); font-size: 0.8rem; margin-bottom: 0.2rem;">Email</span>
-                        <div style="color: var(--text-secondary); display: flex; align-items: center; gap: 0.5rem;">
-                            <i class="fa-solid fa-envelope" style="color: var(--primary);"></i>
-                            {{ analysis.personal_info.email if analysis.personal_info and analysis.personal_info.email
-                            else 'Not Found' }}
-                        </div>
-                    </div>
-                    <div>
-                        <span
-                            style="display: block; color: var(--text-muted); font-size: 0.8rem; margin-bottom: 0.2rem;">Phone</span>
-                        <div style="color: var(--text-secondary); display: flex; align-items: center; gap: 0.5rem;">
-                            <i class="fa-solid fa-phone" style="color: var(--success);"></i>
-                            {{ analysis.personal_info.phone if analysis.personal_info and analysis.personal_info.phone
-                            else 'Not Found' }}
-                        </div>
-                    </div>
+        <!-- Right: Breakdown & Contact -->
+        <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+
+            <!-- Contact Info Card -->
+            <div class="glass-card" style="padding: 1.25rem;">
+                <div class="info-row">
+                    <span class="info-label">Email Address</span>
+                    <span class="info-value">
+                        {% if analysis.personal_info and analysis.personal_info.email %}
+                        {{ analysis.personal_info.email }}
+                        <i class="fa-solid fa-check-circle text-green" title="Verified"></i>
+                        {% else %}
+                        <span class="text-muted">Not Found</span>
+                        {% endif %}
+                    </span>
                 </div>
-
+                <!-- Phone -->
+                <div class="info-row">
+                    <span class="info-label">Phone Number</span>
+                    <span class="info-value">
+                        {% if analysis.personal_info and analysis.personal_info.phone %}
+                        {{ analysis.personal_info.phone }}
+                        {% else %}
+                        <span class="text-muted">Not Found</span>
+                        {% endif %}
+                    </span>
+                </div>
+                <!-- Education -->
                 {% if analysis.personal_info and analysis.personal_info.education %}
-                <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.05);">
-                    <span
-                        style="display: block; color: var(--text-muted); font-size: 0.8rem; margin-bottom: 0.5rem;">Education
-                        Detected</span>
+                <div style="padding-top: 0.75rem; margin-top: 0.5rem;">
+                    <span class="info-label" style="display: block; margin-bottom: 0.5rem;">Education</span>
                     <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
                         {% for deg in analysis.personal_info.education %}
                         <span class="tag"
-                            style="background: rgba(99, 102, 241, 0.1); border: 1px solid rgba(99, 102, 241, 0.2); color: #818cf8; font-size: 0.85rem;">
-                            <i class="fa-solid fa-graduation-cap"></i> {{ deg }}
+                            style="background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border); color: var(--text-secondary); font-size: 0.8rem;">
+                            <i class="fa-solid fa-graduation-cap text-info"></i> {{ deg }}
                         </span>
                         {% endfor %}
                     </div>
@@ -92,91 +206,29 @@
                 {% endif %}
             </div>
 
-            <!-- Skills Section -->
-            <div class="glass-card nested-card" style="padding: 1.5rem; margin-bottom: 2rem;">
-                <div style="margin-bottom: 1.5rem;">
-                    <h4
-                        style="font-size: 0.85rem; text-transform: uppercase; color: var(--text-muted); margin-bottom: 1rem; letter-spacing: 0.05em;">
-                        <i class="fa-solid fa-check-circle text-green" style="margin-right: 0.5rem;"></i> Matched Skills
-                    </h4>
-                    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
-                        {% for skill in analysis.matching %}
-                        <span class="tag match"
-                            style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); color: #34d399; padding: 0.35rem 0.85rem;">{{
-                            skill }}</span>
-                        {% else %}
-                        <span style="color: var(--text-muted); font-style: italic;">No specific skills matched.</span>
-                        {% endfor %}
-                    </div>
-                </div>
-
-                {% if analysis.missing %}
-                <div>
-                    <h4
-                        style="font-size: 0.85rem; text-transform: uppercase; color: var(--text-muted); margin-bottom: 1rem; letter-spacing: 0.05em;">
-                        <i class="fa-solid fa-circle-exclamation text-red" style="margin-right: 0.5rem;"></i> Skill Gaps
-                    </h4>
-                    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
-                        {% for skill in analysis.missing %}
-                        <span class="tag missing"
-                            style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); color: #f87171; padding: 0.35rem 0.85rem;">{{
-                            skill }}</span>
-                        {% endfor %}
-                    </div>
-                </div>
-                {% endif %}
-            </div>
-
-            <!-- AI Interview Questions -->
-            <div>
-                <h3
-                    style="margin-bottom: 1.25rem; font-size: 1.25rem; display: flex; align-items: center; gap: 0.75rem;">
-                    <i class="fa-solid fa-clipboard-question" style="color: var(--primary);"></i>
-                    Suggested Interview Questions
-                </h3>
-                <div class="question-list">
-                    {% for q in analysis.questions %}
-                    <div class="glass-card"
-                        style="padding: 1.25rem; margin-bottom: 1rem; border-left: 3px solid var(--primary); background: linear-gradient(90deg, rgba(99, 102, 241, 0.05) 0%, transparent 100%);">
-                        <p style="margin: 0; color: var(--text-secondary); font-size: 0.95rem; line-height: 1.6;">{{ q
-                            }}</p>
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
-        </div>
-
-        <!-- Right Column: Visuals -->
-        <div class="chart-col">
-            <!-- Radar Chart -->
-            <div class="glass-card" style="padding: 1.5rem; margin-bottom: 1.5rem; text-align: center;">
-                <h4 style="margin-bottom: 1.5rem; color: var(--text-primary);">Profile Match Radar</h4>
-                <div style="height: 250px; position: relative;">
-                    <canvas id="skillsRadar"></canvas>
-                </div>
-            </div>
-
-            <!-- Breakdown -->
+            <!-- Score Bars -->
             <div class="glass-card" style="padding: 1.5rem;">
-                <h4 style="margin-bottom: 1.25rem;">Score Breakdown</h4>
+                <h4 style="font-size: 0.95rem; margin-bottom: 1rem;">Scoring Breakdown</h4>
 
                 <div style="margin-bottom: 1rem;">
                     <div
-                        style="display: flex; justify-content: space-between; margin-bottom: 0.4rem; font-size: 0.9rem;">
-                        <span style="color: var(--text-muted);">Experience Match</span>
-                        <span style="font-weight: 600;">{{ candidate.experience_score|round }}%</span>
+                        style="display: flex; justify-content: space-between; margin-bottom: 0.4rem; font-size: 0.85rem;">
+                        <span class="text-muted"><i class="fa-solid fa-brain"
+                                style="color: var(--primary); margin-right: 5px;"></i> Semantic Fit</span>
+                        <span style="font-weight: 600;">{{ candidate.semantic_score|round }}%</span>
                     </div>
                     <div class="progress-bg">
                         <div
-                            style="width: {{ candidate.experience_score }}%; height: 100%; background: var(--info); border-radius: 3px;">
+                            style="width: {{ candidate.semantic_score }}%; height: 100%; background: var(--primary); border-radius: 3px;">
                         </div>
                     </div>
                 </div>
 
                 <div style="margin-bottom: 1rem;">
                     <div
-                        style="display: flex; justify-content: space-between; margin-bottom: 0.4rem; font-size: 0.9rem;">
-                        <span style="color: var(--text-muted);">Skills Match</span>
+                        style="display: flex; justify-content: space-between; margin-bottom: 0.4rem; font-size: 0.85rem;">
+                        <span class="text-muted"><i class="fa-solid fa-tools"
+                                style="color: var(--success); margin-right: 5px;"></i> Skills Match</span>
                         <span style="font-weight: 600;">{{ candidate.skills_score|round }}%</span>
                     </div>
                     <div class="progress-bg">
@@ -188,49 +240,111 @@
 
                 <div>
                     <div
-                        style="display: flex; justify-content: space-between; margin-bottom: 0.4rem; font-size: 0.9rem;">
-                        <span style="color: var(--text-muted);">Semantic Relevance</span>
-                        <span style="font-weight: 600;">{{ candidate.semantic_score|round }}%</span>
+                        style="display: flex; justify-content: space-between; margin-bottom: 0.4rem; font-size: 0.85rem;">
+                        <span class="text-muted"><i class="fa-solid fa-clock-rotate-left"
+                                style="color: var(--warning); margin-right: 5px;"></i> Experience</span>
+                        <span style="font-weight: 600;">{{ candidate.experience_score|round }}%</span>
                     </div>
                     <div class="progress-bg">
                         <div
-                            style="width: {{ candidate.semantic_score }}%; height: 100%; background: var(--primary); border-radius: 3px;">
+                            style="width: {{ candidate.experience_score }}%; height: 100%; background: var(--warning); border-radius: 3px;">
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Offer Management (NEW) -->
-            {% if candidate.status == 'Offer' %}
-            <div class="glass-card" style="padding: 1.5rem; margin-bottom: 1.5rem; border-top: 3px solid #10b981;">
-                <h4
-                    style="margin-bottom: 1rem; color: var(--text-primary); display: flex; align-items: center; gap: 0.5rem;">
-                    <i class="fa-solid fa-file-contract"></i> Offer Management
-                </h4>
-                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">
-                    Candidate is in Offer stage. Generate an official offer letter now.
-                </p>
-                <a href="/candidate/{{ candidate.id }}/offer/form" target="_blank" class="btn-primary"
-                    style="width: 100%; justify-content: center; background: #10b981; border-color: #059669;">
-                    <i class="fa-solid fa-wand-magic-sparkles"></i> Generate Offer Letter
-                </a>
+        </div>
+    </div>
+
+    <!-- LOWER SECTION: Skills & Questions -->
+    <div class="modal-grid animate-in" style="animation-delay: 0.1s;">
+
+        <!-- Skills Analysis -->
+        <div class="glass-card" style="padding: 1.5rem;">
+            <h4 style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                <i class="fa-solid fa-layer-group text-primary"></i> Skills Assessment
+            </h4>
+
+            <div class="skill-section">
+                <div class="skill-title"><i class="fa-solid fa-check text-green"></i> Matched Skills</div>
+                <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                    {% for skill in analysis.matching %}
+                    <span class="tag match">{{ skill }}</span>
+                    {% else %}
+                    <span style="color: var(--text-muted); font-style: italic; font-size: 0.9rem;">No direct skill
+                        matches found.</span>
+                    {% endfor %}
+                </div>
+            </div>
+
+            {% if analysis.missing %}
+            <div class="skill-section" style="margin-bottom: 0;">
+                <div class="skill-title"><i class="fa-solid fa-xmark text-red"></i> Missing / Not Found</div>
+                <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                    {% for skill in analysis.missing %}
+                    <span class="tag missing">{{ skill }}</span>
+                    {% endfor %}
+                </div>
             </div>
             {% endif %}
+        </div>
 
-            <!-- Hiring Manager Notes (NEW) -->
-            <div class="glass-card" style="padding: 1.5rem; border-top: 3px solid #f472b6;">
-                <h4
-                    style="margin-bottom: 1rem; color: var(--text-primary); display: flex; align-items: center; gap: 0.5rem;">
-                    <i class="fa-solid fa-pen-nib"></i> Hiring Manager Notes
+        <!-- Questions & Notes -->
+        <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+
+            <!-- AI Questions -->
+            <div class="glass-card"
+                style="padding: 1.5rem; border-left: 3px solid var(--primary); max-height: 400px; overflow-y: auto;">
+                <h4 style="margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                    <i class="fa-solid fa-clipboard-question text-primary"></i> Suggested Questions
                 </h4>
-                <form action="/candidate/{{ candidate.id }}/notes" method="POST">
-                    <textarea name="notes" rows="6" placeholder="Enter interview feedback or internal notes here..."
-                        style="width: 100%; padding: 0.8rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border); color: var(--text-primary); border-radius: var(--radius); resize: vertical; margin-bottom: 1rem;">{{ candidate.notes if candidate.notes else '' }}</textarea>
-                    <button type="submit" class="btn-primary" style="width: 100%; justify-content: center;">
-                        <i class="fa-solid fa-save"></i> Save Notes
-                    </button>
-                </form>
+                <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                    {% for q in analysis.questions %}
+                    <div
+                        style="padding: 1rem; background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 8px;">
+                        <p style="margin: 0; color: var(--text-secondary); font-size: 0.9rem; line-height: 1.5;">{{ q }}
+                        </p>
+                    </div>
+                    {% endfor %}
+                </div>
             </div>
+
+            <!-- Quick Actions -->
+            <div class="glass-card"
+                style="padding: 1.5rem; background: linear-gradient(135deg, var(--bg-card) 0%, rgba(99, 102, 241, 0.05) 100%);">
+                <h4 style="margin-bottom: 1rem;">Action Center</h4>
+                <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+
+                    <a href="mailto:{{ analysis.personal_info.email }}?subject=Interview Invitation for {{ job_title }}&body=Dear {{ analysis.personal_info.name }},%0D%0A%0D%0AWe are pleased to invite you for an interview.%0D%0A%0D%0ARegards,%0D%0ARecruiting Team"
+                        class="btn-primary" style="flex: 1; justify-content: center;">
+                        <i class="fa-solid fa-paper-plane"></i> Send Email
+                    </a>
+
+                    <!-- Toggle Notes (Logic to expand notes could involve JS, but simple link for now or just the form below) -->
+                </div>
+
+                <!-- Compact Notes Form -->
+                <form action="/talent_pool/note/{{ candidate.id }}" method="POST" style="margin-top: 1rem;">
+                    <div style="position: relative;">
+                        <textarea name="note" rows="2" placeholder="Add private recruiter notes..."
+                            style="width: 100%; padding: 0.8rem; padding-right: 2.5rem; background: var(--bg-body); border-radius: 8px; font-size: 0.9rem; resize: none;">{{ candidate.notes if candidate.notes else '' }}</textarea>
+                        <button type="submit"
+                            style="position: absolute; right: 0.5rem; bottom: 0.5rem; background: none; border: none; color: var(--primary); cursor: pointer;">
+                            <i class="fa-solid fa-floppy-disk"></i>
+                        </button>
+                    </div>
+                </form>
+
+                {% if candidate.status == 'Offer' %}
+                <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border);">
+                    <a href="/candidate/{{ candidate.id }}/offer/form" target="_blank" class="btn-primary"
+                        style="width: 100%; justify-content: center; background: #10b981; border-color: #059669;">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i> Create Offer Letter
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+
         </div>
     </div>
 </div>

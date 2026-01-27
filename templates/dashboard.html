@@ -2,12 +2,18 @@
 
 {% block content %}
 
+<!-- Welcome Banner -->
+<div class="welcome-banner">
+    <div style="position: relative; z-index: 1;">
+        <p class="welcome-date"><i class="fa-regular fa-calendar"></i> {{ current_date }}</p>
+        <h2 style="font-size: 1.75rem; margin-bottom: 0.5rem;">Welcome back, {{ current_user.name }}! 👋</h2>
+        <p>Here's what's happening with your recruitment pipeline today.</p>
+    </div>
+</div>
+
 <div class="dashboard-header" style="margin-bottom: 2rem;">
-    <h1
-        style="background: linear-gradient(135deg, var(--primary) 0%, #818cf8 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 0.5rem;">
-        Recruiting Overview
-    </h1>
-    <p style="color: var(--text-secondary);">Manage your talent pool and active roles.</p>
+    <h1 class="text-gradient mb-0">Recruiting Overview</h1>
+    <p class="dashboard-subtitle">Manage your talent pool and active roles.</p>
 </div>
 
 <!-- Stats Grid Placeholder -->
@@ -16,28 +22,28 @@
         <div class="icon-box purple"><i class="fa-solid fa-users"></i></div>
         <div class="stat-info">
             <h3>{{ total_candidates }}</h3>
-            <p style="margin:0; font-size:0.9rem; color:var(--text-muted);">Total Candidates</p>
+            <p class="stat-label">Total Candidates</p>
         </div>
     </div>
     <div class="stat-card">
         <div class="icon-box blue"><i class="fa-solid fa-briefcase"></i></div>
         <div class="stat-info">
             <h3>{{ jobs|length }}</h3>
-            <p style="margin:0; font-size:0.9rem; color:var(--text-muted);">Active Jobs</p>
+            <p class="stat-label">Active Jobs</p>
         </div>
     </div>
     <div class="stat-card">
         <div class="icon-box green"><i class="fa-solid fa-chart-line"></i></div>
         <div class="stat-info">
             <h3>{{ avg_score }}%</h3>
-            <p style="margin:0; font-size:0.9rem; color:var(--text-muted);">Avg Match Score</p>
+            <p class="stat-label">Avg Match Score</p>
         </div>
     </div>
 </div>
 
 <div class="glass-card">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-        <h3 style="margin:0;">Active Positions</h3>
+    <div class="d-flex justify-between align-center" style="margin-bottom: 1.5rem;">
+        <h3 class="mb-0">Active Positions</h3>
         <button onclick="document.getElementById('createJobForm').scrollIntoView({behavior: 'smooth'})"
             class="btn-secondary" style="font-size: 0.85rem;">
             <i class="fa-solid fa-plus"></i> New Job

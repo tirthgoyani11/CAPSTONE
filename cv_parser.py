@@ -134,18 +134,36 @@ def extract_candidate_info(text):
     except Exception:
         pass
         
-    # 4. Name Extraction (Heuristic: First significant line)
+    # 4. Name Extraction (Improved Heuristic)
     try:
         lines = [l.strip() for l in text.split('\n') if l.strip()]
         if lines:
-            # Simple heuristic: first line is usually the name
-            # Filtering out common header words if they appear alone
-            potential_name = lines[0]
-            if len(potential_name.split()) < 5 and "resume" not in potential_name.lower() and "curriculum" not in potential_name.lower():
-                 info['name'] = potential_name
-            elif len(lines) > 1:
-                 # Try second line if first is likely a header
-                 info['name'] = lines[1]
+            # Iterate first few lines to find a name-like string (2-3 words, no numbers)
+            for i in range(min(10, len(lines))):
+                candidate_line = lines[i].strip()
+                # Clean up generic headers
+                if any(x in candidate_line.lower() for x in ['resume', 'curriculum', 'vitae', 'cv', 'profile', 'format', 'first name', 'introduction', 'name:', 'candidate', 'contact', 'email', 'phone']):
+                    continue
+                # Check if it looks like a name (no digits, 2-4 words, Title Case)
+                words = candidate_line.split()
+                if 2 <= len(words) <= 4 and not any(char.isdigit() for char in candidate_line):
+                    # Check if at least the first letter is uppercase (Title Case check)
+                    if candidate_line[0].isupper(): 
+                        info['name'] = candidate_line
+                        break
+    except Exception:
+        pass
+
+    # 5. Certifications (Stub/Heuristic)
+    info['certifications'] = []
+    try:
+        cert_keywords = ['aws certified', 'azure', 'google cloud professional', 'pmp', 'scrum master', 'cisco', 'comptia']
+        lower_text = text.lower()
+        for ck in cert_keywords:
+            if ck in lower_text:
+                # Find the full line or context
+                # simplified: just add the keyword found
+                info['certifications'].append(ck.title())
     except Exception:
         pass
 

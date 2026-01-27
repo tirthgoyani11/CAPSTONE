@@ -11,3 +11,7 @@ gcetv23/
 # AI Models
 models/nexgen_cv_engine/
 *.safetensors
+
+
+#Ignore vscode AI rules
+.github\instructions\codacy.instructions.md

@@ -1,68 +1,173 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI CV Screener</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/static/style.css">
-</head>
-<body>
+{% extends "layout.html" %}
 
-    <div class="container">
-        <header>
-            <h1>AI CV Screener</h1>
-            <p>Automated Ranking & Screening System</p>
-        </header>
+{% block content %}
+<div class="dashboard-header" style="margin-bottom: 3rem;">
+    <h1 class="text-gradient" style="margin-bottom: 0.5rem; font-size: 2.5rem;">AI CV Screener</h1>
+    <p class="dashboard-subtitle" style="font-size: 1.1rem; max-width: 600px;">
+        Start a new recruitment campaign. Upload a job description and candidate CVs to get instant AI-powered ranking
+        and analysis.
+    </p>
+</div>
 
-        <main>
-            <div class="grid-layout">
-                <section class="config-panel card">
-                    <h2>Configuration</h2>
-                    <form id="uploadForm">
-                        <div class="form-group">
-                            <label for="jd">Upload Job Description (PDF/DOCX/TXT)</label>
-                            <input type="file" id="jd" name="jd" accept=".pdf,.docx,.txt" required>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="cvs">Upload CVs (Multiple)</label>
-                            <input type="file" id="cvs" name="cvs" accept=".pdf,.docx,.txt" multiple required>
-                        </div>
+<!-- Main Grid Layout -->
+<div style="display: grid; grid-template-columns: 350px 1fr; gap: 2rem; align-items: start;">
 
-                        <div class="weights-config">
-                            <h3>Scoring Weights</h3>
-                            <div class="slider-group">
-                                <label>Overall Semantic Match: <span id="val_overall">0.5</span></label>
-                                <input type="range" name="weight_overall" min="0" max="1" step="0.1" value="0.5" oninput="document.getElementById('val_overall').innerText = this.value">
-                            </div>
-                            <div class="slider-group">
-                                <label>Skills Focus: <span id="val_skills">0.3</span></label>
-                                <input type="range" name="weight_skills" min="0" max="1" step="0.1" value="0.3" oninput="document.getElementById('val_skills').innerText = this.value">
-                            </div>
-                            <div class="slider-group">
-                                <label>Experience Focus: <span id="val_exp">0.2</span></label>
-                                <input type="range" name="weight_experience" min="0" max="1" step="0.1" value="0.2" oninput="document.getElementById('val_exp').innerText = this.value">
-                            </div>
-                        </div>
-
-                        <button type="submit" class="btn-primary">Analyze & Rank</button>
-                    </form>
-                </section>
-
-                <section class="results-panel">
-                    <h2>Ranking Results</h2>
-                    <div id="loader" class="hidden">Processing...</div>
-                    <div id="resultsList" class="results-list">
-                        <!-- Results will appear here -->
-                    </div>
-                </section>
+    <!-- LEFT PANEL: Upload Configuration -->
+    <section class="glass-card" style="padding: 2rem;">
+        <h3 style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.75rem;">
+            <div style="background: rgba(99, 102, 241, 0.1); padding: 8px; border-radius: 8px;">
+                <i class="fa-solid fa-sliders text-primary"></i>
             </div>
-        </main>
-    </div>
+            Configuration
+        </h3>
 
-    <script src="/static/script.js"></script>
-</body>
-</html>
+        <form id="uploadForm" class="flex-column" style="gap: 1.5rem;">
+            <!-- Job Description -->
+            <div>
+                <label style="display: block; margin-bottom: 0.75rem; font-weight: 500;">
+                    Job Description <span class="text-muted"
+                        style="font-weight: 400; font-size: 0.85rem;">(PDF/Docx)</span>
+                </label>
+                <div class="upload-zone"
+                    style="border: 2px dashed var(--border); border-radius: 12px; padding: 1.5rem; text-align: center; cursor: pointer; transition: all 0.2s;"
+                    onclick="document.getElementById('jd').click()">
+                    <i class="fa-solid fa-file-contract"
+                        style="font-size: 1.5rem; color: var(--text-muted); margin-bottom: 0.5rem;"></i>
+                    <p style="margin: 0; font-size: 0.9rem; color: var(--text-secondary);">Click to Upload JD</p>
+                    <input type="file" id="jd" name="jd" accept=".pdf,.docx,.txt" required style="display: none;"
+                        onchange="updateFileName(this)">
+                </div>
+            </div>
+
+            <!-- CVs -->
+            <div>
+                <label style="display: block; margin-bottom: 0.75rem; font-weight: 500;">
+                    Candidate CVs <span class="text-muted" style="font-weight: 400; font-size: 0.85rem;">(Batch
+                        Upload)</span>
+                </label>
+                <div class="upload-zone"
+                    style="border: 2px dashed var(--border); border-radius: 12px; padding: 1.5rem; text-align: center; cursor: pointer; transition: all 0.2s;"
+                    onclick="document.getElementById('cvs').click()">
+                    <i class="fa-solid fa-users-viewfinder"
+                        style="font-size: 1.5rem; color: var(--text-muted); margin-bottom: 0.5rem;"></i>
+                    <p style="margin: 0; font-size: 0.9rem; color: var(--text-secondary);">Select Multiple Files</p>
+                    <input type="file" id="cvs" name="cvs" accept=".pdf,.docx,.txt" multiple required
+                        style="display: none;" onchange="updateFileCount(this)">
+                </div>
+            </div>
+
+            <!-- Weights Sliders -->
+            <div
+                style="background: var(--bg-body); padding: 1.25rem; border-radius: 12px; border: 1px solid var(--border);">
+                <label
+                    style="display: block; margin-bottom: 1rem; font-size: 0.9rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted);">
+                    AI Scoring Priorities
+                </label>
+
+                <div style="margin-bottom: 1rem;">
+                    <div class="d-flex justify-between" style="margin-bottom: 0.25rem; font-size: 0.85rem;">
+                        <span>Semantic Match</span>
+                        <span id="val_overall" class="text-primary font-bold">0.5</span>
+                    </div>
+                    <input type="range" name="weight_overall" min="0" max="1" step="0.1" value="0.5"
+                        style="width: 100%; accent-color: var(--primary);"
+                        oninput="document.getElementById('val_overall').innerText = this.value">
+                </div>
+
+                <div style="margin-bottom: 1rem;">
+                    <div class="d-flex justify-between" style="margin-bottom: 0.25rem; font-size: 0.85rem;">
+                        <span>Skills Focus</span>
+                        <span id="val_skills" class="text-success font-bold">0.3</span>
+                    </div>
+                    <input type="range" name="weight_skills" min="0" max="1" step="0.1" value="0.3"
+                        style="width: 100%; accent-color: var(--success);"
+                        oninput="document.getElementById('val_skills').innerText = this.value">
+                </div>
+
+                <div>
+                    <div class="d-flex justify-between" style="margin-bottom: 0.25rem; font-size: 0.85rem;">
+                        <span>Experience Focus</span>
+                        <span id="val_exp" class="text-warning font-bold">0.2</span>
+                    </div>
+                    <input type="range" name="weight_experience" min="0" max="1" step="0.1" value="0.2"
+                        style="width: 100%; accent-color: var(--warning);"
+                        oninput="document.getElementById('val_exp').innerText = this.value">
+                </div>
+            </div>
+
+            <button type="submit" class="btn-primary"
+                style="width: 100%; padding: 1rem; font-size: 1.1rem; justify-content: center; box-shadow: 0 4px 14px rgba(79, 70, 229, 0.4);">
+                <i class="fa-solid fa-rocket" style="margin-right: 0.5rem;"></i> Run AI Analysis
+            </button>
+        </form>
+    </section>
+
+    <!-- RIGHT PANEL: Results -->
+    <section class="results-panel">
+        <div class="glass-card" style="min-height: 600px; padding: 0;">
+            <div
+                style="padding: 1.5rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="margin: 0;">Analysis Results</h3>
+                <span id="result-status" class="status-pill">Ready</span>
+            </div>
+
+            <div id="loader" class="hidden" style="padding: 4rem; text-align: center;">
+                <i class="fa-solid fa-circle-notch fa-spin"
+                    style="font-size: 3rem; color: var(--primary); margin-bottom: 1.5rem;"></i>
+                <h3 style="margin-bottom: 0.5rem;">Processing Candidates...</h3>
+                <p class="text-muted">Our AI is reading resumes and matching against the JD.</p>
+            </div>
+
+            <div id="resultsList" class="results-list" style="padding: 1.5rem;">
+                <!-- Empty State -->
+                <div class="empty-state">
+                    <i class="fa-solid fa-magnifying-glass-chart"></i>
+                    <h3>No Analysis Yet</h3>
+                    <p>Upload a JD and CVs to see ranked results here.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+
+<script>
+    function updateFileName(input) {
+        const text = input.previousElementSibling;
+        if (input.files.length > 0) {
+            text.innerText = input.files[0].name;
+            text.style.color = 'var(--text-primary)';
+            input.parentElement.style.borderColor = 'var(--primary)';
+            input.parentElement.style.background = 'rgba(99, 102, 241, 0.05)';
+        }
+    }
+
+    function updateFileCount(input) {
+        const text = input.previousElementSibling;
+        if (input.files.length > 0) {
+            text.innerText = `${input.files.length} Files Selected`;
+            text.style.color = 'var(--text-primary)';
+            input.parentElement.style.borderColor = 'var(--primary)';
+            input.parentElement.style.background = 'rgba(99, 102, 241, 0.05)';
+        }
+    }
+
+    // Enhance standard script.js handling by updating this specific page's form logic if needed
+    // or rely on the global script.
+    // Assuming the global script or a specific script handles #uploadForm submission.
+    // I will check script.js next to ensuring #uploadForm is handled correctly.
+</script>
+
+<style>
+    /* Specific overrides for this page */
+    .upload-zone:hover {
+        border-color: var(--primary) !important;
+        background: rgba(99, 102, 241, 0.05) !important;
+    }
+
+    .grid-layout {
+        display: none;
+    }
+
+    /* Override old class if legacy css lingers */
+</style>
+{% endblock %}

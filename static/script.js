@@ -1,4 +1,48 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // === Toast Notification System ===
+    window.showToast = function (type, title, message, duration = 4000) {
+        const container = document.getElementById('toast-container');
+        if (!container) return;
+
+        const icons = {
+            success: 'fa-circle-check',
+            error: 'fa-circle-xmark',
+            warning: 'fa-triangle-exclamation',
+            info: 'fa-circle-info'
+        };
+
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        toast.innerHTML = `
+            <i class="fa-solid ${icons[type] || icons.info} toast-icon"></i>
+            <div class="toast-content">
+                <div class="toast-title">${title}</div>
+                <div class="toast-message">${message}</div>
+            </div>
+            <button class="toast-close" onclick="this.parentElement.remove()">
+                <i class="fa-solid fa-times"></i>
+            </button>
+        `;
+
+        container.appendChild(toast);
+
+        setTimeout(() => {
+            toast.classList.add('hiding');
+            setTimeout(() => toast.remove(), 300);
+        }, duration);
+    };
+
+    // === Global Loader ===
+    window.showLoader = function () {
+        const loader = document.getElementById('global-loader');
+        if (loader) loader.classList.remove('hidden');
+    };
+
+    window.hideLoader = function () {
+        const loader = document.getElementById('global-loader');
+        if (loader) loader.classList.add('hidden');
+    };
+
     // Theme Toggling Logic
     const themeBtn = document.getElementById('theme-toggle');
     const html = document.documentElement;
@@ -165,3 +209,95 @@ window.initModalCharts = function () {
         }
     });
 };
+
+function toggleEditMode() {
+    const container = document.getElementById('edit-form-container');
+    if (container) {
+        container.classList.toggle('active');
+    }
+}
+
+// Quick Scan Form Handler
+const uploadForm = document.getElementById('uploadForm');
+if (uploadForm) {
+    uploadForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const loader = document.getElementById('loader');
+        const resultsList = document.getElementById('resultsList');
+        const statusValues = document.querySelectorAll('.upload-zone p'); // Optional UI feedback
+
+        // UI Reset
+        loader.classList.remove('hidden');
+        resultsList.innerHTML = '';
+
+        const formData = new FormData(uploadForm);
+
+        try {
+            const response = await fetch('/analyze', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await response.json();
+
+            loader.classList.add('hidden');
+
+            if (data.error) {
+                resultsList.innerHTML = `<div class="glass-card" style="border-left: 4px solid var(--danger); padding: 1rem;"><p class="text-red">Error: ${data.error}</p></div>`;
+                return;
+            }
+
+            if (!data.results || data.results.length === 0) {
+                resultsList.innerHTML = `<div class="empty-state"><p>No results returned. Ensure documents are readable.</p></div>`;
+                return;
+            }
+
+            // Render Results
+            const statusBadge = document.getElementById('result-status');
+            if (statusBadge) { statusBadge.innerText = `Analyzed ${data.results.length} Candidates`; statusBadge.className = 'status-pill open'; }
+
+            data.results.forEach((res, index) => {
+                const color = res.total_score >= 80 ? 'success' : (res.total_score >= 50 ? 'warning' : 'danger');
+                const card = document.createElement('div');
+                card.className = 'glass-card animate-in';
+                card.style.animationDelay = `${index * 0.1}s`;
+                card.style.padding = '1.25rem';
+                card.style.marginBottom = '1rem';
+                card.style.display = 'flex';
+                card.style.justifyContent = 'space-between';
+                card.style.alignItems = 'center';
+                card.style.borderLeft = `4px solid var(--${color})`;
+
+                const missingChips = res.missing_skills && res.missing_skills.length > 0
+                    ? res.missing_skills.slice(0, 3).map(s => `<span class="tag missing" style="font-size: 0.75rem;">${s}</span>`).join('')
+                    : '<span class="text-muted" style="font-size: 0.8rem;">All critical skills matched</span>';
+
+                card.innerHTML = `
+                    <div style="flex: 1;">
+                        <h4 style="margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                            ${res.filename}
+                            <span class="status-pill" style="font-size: 0.7rem; background: rgba(255,255,255,0.05);"> EXP: ${res.years_experience} Yrs</span>
+                        </h4>
+                        <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                            ${missingChips}
+                            ${res.missing_skills.length > 3 ? `<span class="text-muted" style="font-size: 0.75rem;">+${res.missing_skills.length - 3} more</span>` : ''}
+                        </div>
+                    </div>
+                    
+                    <div style="text-align: right; min-width: 100px;">
+                        <span style="font-size: 1.5rem; font-weight: 700; color: var(--${color}); display: block;">${Math.round(res.total_score)}%</span>
+                        <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Match Score</span>
+                    </div>
+                `;
+                resultsList.appendChild(card);
+            });
+
+        } catch (err) {
+            console.error(err);
+            loader.classList.add('hidden');
+            resultsList.innerHTML = `<div class="glass-card"><p class="text-red">System Error: Failed to analyze documents.</p></div>`;
+        }
+    });
+}
+
