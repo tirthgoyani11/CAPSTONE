@@ -334,26 +334,95 @@ nexgen-ats/
 
 ### How It Works
 
-The NexGen Scoring Engine uses a multi-dimensional approach to evaluate candidates:
+The NexGen Scoring Engine uses a sophisticated **5-dimensional scoring model** with intelligent adjustments:
 
 ```
-Total Score = (Semantic Score × 0.4) + (Skills Score × 0.35) + (Experience Score × 0.25)
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    NexGen Smart Score Algorithm                         │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│   Base Score = Σ (Component × Weight)                                   │
+│                                                                         │
+│   ┌─────────────────┬────────┬────────────────────────────────────┐    │
+│   │ Component       │ Weight │ What it measures                   │    │
+│   ├─────────────────┼────────┼────────────────────────────────────┤    │
+│   │ Semantic Match  │  35%   │ Deep contextual fit via AI         │    │
+│   │ Skills Match    │  30%   │ Core + nice-to-have skills         │    │
+│   │ Experience      │  20%   │ Years vs requirements              │    │
+│   │ Education       │  10%   │ Degree level alignment             │    │
+│   │ Recency         │   5%   │ Current employment status          │    │
+│   └─────────────────┴────────┴────────────────────────────────────┘    │
+│                                                                         │
+│   Final Score = Base + Confidence Boost - Critical Penalty             │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
 ```
 
-1. **Semantic Similarity (40%)**
-   - Embeds CV and Job Description using Sentence Transformers
-   - Computes cosine similarity between embeddings
-   - Captures contextual meaning beyond keywords
+### Scoring Components Explained
 
-2. **Skills Match (35%)**
-   - Extracts skills from CV using pattern matching
-   - Compares against required job skills
-   - Identifies missing skills for gap analysis
+#### 1. Semantic Similarity (35%)
+- Uses Sentence Transformers (`all-mpnet-base-v2`) to create embeddings
+- Computes cosine similarity between CV and Job Description
+- Captures **contextual meaning** beyond simple keyword matching
+- Understands synonyms, related concepts, and industry terminology
 
-3. **Experience Alignment (25%)**
-   - Parses years of experience from CV
-   - Matches against job requirements
-   - Considers career progression
+#### 2. Skills Match (30%)
+Advanced multi-factor skill scoring:
+
+| Factor | Description | Bonus |
+|--------|-------------|-------|
+| **Core Skills** | Must-have/required skills (70% of skill score) | - |
+| **Nice-to-Have** | Preferred/bonus skills (30% of skill score) | - |
+| **Skill Depth** | Multiple mentions of a skill | +2% per skill (max 10%) |
+| **Transferable Skills** | Related technologies (e.g., React → Vue) | +3% per skill (max 15%) |
+
+#### 3. Experience Alignment (20%)
+Intelligent experience matching with JD parsing:
+
+| Scenario | Score | Label |
+|----------|-------|-------|
+| Within required range | 100% | Perfect Match |
+| 1 year under | 75% | Slightly Under |
+| 2 years under | 55% | Under-Qualified |
+| 1-3 years over | 90% | Slightly Over |
+| 4+ years over | 75% | Over-Qualified |
+
+#### 4. Education Fit (10%)
+Automatic degree detection and scoring:
+
+| Level | Score |
+|-------|-------|
+| PhD/Doctorate | 100% |
+| Master's/MBA | 90% |
+| Bachelor's | 75% |
+| Associate/Diploma | 60% |
+| High School | 40% |
+
+#### 5. Recency Factor (5%)
+Rewards active professionals:
+
+| Status | Score |
+|--------|-------|
+| Currently Employed | 100% |
+| Recently Active (2 years) | 85% |
+| Employment Gap | 65% |
+
+### Intelligent Adjustments
+
+**Confidence Boost**: When 3+ signals are strong (>70%), adds up to +5%
+
+**Critical Penalty**: Missing >70% core skills applies -10% penalty
+
+### Grade System
+
+| Score | Grade | Recommendation |
+|-------|-------|----------------|
+| 85%+ | A+ | Excellent Match - Priority Interview |
+| 75-84% | A | Strong Match - Recommended |
+| 65-74% | B+ | Good Match - Consider |
+| 55-64% | B | Moderate Match - Review |
+| 45-54% | C | Partial Match - Optional |
+| <45% | D | Weak Match - Not Recommended |
 
 ### Skill Categories
 

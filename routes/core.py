@@ -166,7 +166,7 @@ def upload_cvs(job_id):
     job = conn.execute('SELECT * FROM jobs WHERE id = ?', (job_id,)).fetchone()
     
     cv_files = request.files.getlist('cvs')
-    weights = {'semantic': 0.5, 'skills': 0.3, 'experience': 0.2}
+    weights = {'semantic': 0.35, 'skills': 0.30, 'experience': 0.20, 'education': 0.10, 'recency': 0.05}
 
     # Identify user if logged in
     user_id = current_user.id if current_user.is_authenticated else None
@@ -478,7 +478,7 @@ def easy_apply(job_id):
         # But for now, just score.
         
         # Generate scores
-        weights = {'semantic': 0.6, 'skills': 0.3, 'experience': 0.1} # Sync with default in scoring_engine
+        weights = {'semantic': 0.35, 'skills': 0.30, 'experience': 0.20, 'education': 0.10, 'recency': 0.05}
         score_data = engine.score_cv(cv_text, job['description'], weights)
         analysis = score_data['analysis']
         
@@ -646,15 +646,19 @@ def analyze():
         jd_file = request.files.get('jd')
         cv_files = request.files.getlist('cvs')
         
-        # Get Weights
-        w_overall = float(request.form.get('weight_overall', 0.5))
-        w_skills = float(request.form.get('weight_skills', 0.3))
-        w_exp = float(request.form.get('weight_experience', 0.2))
+        # Get Weights (using 5-dimensional scoring)
+        w_semantic = float(request.form.get('weight_overall', 0.35))
+        w_skills = float(request.form.get('weight_skills', 0.30))
+        w_exp = float(request.form.get('weight_experience', 0.20))
+        w_edu = float(request.form.get('weight_education', 0.10))
+        w_rec = float(request.form.get('weight_recency', 0.05))
         
         weights = {
-            'overall_similarity': w_overall,
+            'semantic': w_semantic,
             'skills': w_skills,
-            'experience': w_exp
+            'experience': w_exp,
+            'education': w_edu,
+            'recency': w_rec
         }
         
         # Process JD
