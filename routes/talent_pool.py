@@ -115,6 +115,26 @@ def update_status(candidate_id):
             INSERT INTO activity_logs (candidate_id, user_id, action_type, description) 
             VALUES (?, ?, 'status_change', ?)
         ''', (candidate_id, user_id, f"Changed status from {old_status} to {new_status}"))
+        
+        # Send Email Notification
+        cand_info = conn.execute('''
+            SELECT c.name, c.email, j.title as job_title 
+            FROM candidates c 
+            LEFT JOIN jobs j ON c.job_id = j.id 
+            WHERE c.id = ?
+        ''', (candidate_id,)).fetchone()
+        
+        if cand_info and cand_info['email']:
+            from utils.email_service import EmailService
+            EmailService.send_status_update(
+                cand_info['name'], 
+                cand_info['email'], 
+                new_status, 
+                cand_info['job_title'],
+                candidate_id=candidate_id,
+                base_url=request.host_url
+            )
+
         conn.commit()
     
     conn.close()

@@ -74,6 +74,18 @@ def schedule():
             VALUES (?, ?, 'interview', ?)
         ''', (candidate_id, current_user.id, f"Scheduled interview for {start_time.strftime('%b %d, %H:%M')}"))
         
+        # Send Email Notification
+        cand_info = conn.execute('SELECT name, email FROM candidates WHERE id = ?', (candidate_id,)).fetchone()
+        if cand_info and cand_info['email']:
+            from utils.email_service import EmailService
+            EmailService.send_interview_invite(
+                cand_info['name'], 
+                cand_info['email'], 
+                start_time.strftime('%b %d, %Y at %I:%M %p'), 
+                location, 
+                notes
+            )
+            
         conn.commit()
         conn.close()
         

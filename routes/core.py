@@ -512,8 +512,50 @@ def easy_apply(job_id):
     
     flash('Application submitted successfully!', 'success')
     return redirect(url_for('core.job_board'))
-    
+
 # --- Offer Management Routes ---
+
+@bp.route('/offer/respond/<int:candidate_id>/<action>')
+@login_required
+def offer_response(candidate_id, action):
+    if current_user.role != 'candidate':
+        flash("Invalid access.", "error")
+        return redirect(url_for('core.dashboard'))
+        
+    # Verify candidate owns this application (optional check)
+    conn = database.get_db_connection()
+    cand = conn.execute('SELECT * FROM candidates WHERE id = ? AND user_id = ?', (candidate_id, current_user.id)).fetchone()
+    
+    if not cand:
+        conn.close()
+        flash("Application not found.", "error")
+        return redirect(url_for('core.dashboard'))
+        
+    if action == 'accept':
+        new_status = 'Offer Accepted'
+        msg = "Congratulations! You have accepted the offer. We will contact you shortly."
+        tag = "success"
+    elif action == 'reject':
+        new_status = 'Offer Declined'
+        msg = "You have declined the offer. We wish you the best in your future endeavors."
+        tag = "info"
+    else:
+        conn.close()
+        return "Invalid action", 400
+        
+    conn.execute('UPDATE candidates SET status = ? WHERE id = ?', (new_status, candidate_id))
+    
+    # Log
+    conn.execute('''
+        INSERT INTO activity_logs (candidate_id, user_id, action_type, description)
+        VALUES (?, ?, 'status_change', ?)
+    ''', (candidate_id, current_user.id, f"Candidate {action}ed the offer"))
+    
+    conn.commit()
+    conn.close()
+    
+    flash(msg, tag)
+    return redirect(url_for('core.dashboard'))
 
 @bp.route('/candidate/<int:candidate_id>/offer/form')
 @login_required
