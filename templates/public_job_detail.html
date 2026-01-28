@@ -1,0 +1,67 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<div style="max-width: 900px; margin: 0 auto;">
+    <div class="glass-card" style="padding: 2.5rem; margin-bottom: 2rem;">
+        <div style="margin-bottom: 2rem; border-bottom: 1px solid var(--border); padding-bottom: 1.5rem;">
+            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem;">
+                <div>
+                    <h1 class="text-gradient" style="margin-bottom: 0.5rem;">{{ job.title }}</h1>
+                    <div style="display: flex; gap: 1rem; color: var(--text-muted); font-size: 0.9rem;">
+                        <span><i class="fa-regular fa-clock"></i> Posted {{ job.created_at[:10] }}</span>
+                        <span><i class="fa-solid fa-briefcase"></i> Full Time</span>
+                        <span class="badge-active">Active</span>
+                    </div>
+                </div>
+                {% if current_user.is_authenticated and current_user.role == 'recruiter' %}
+                <a href="{{ url_for('core.job_detail', job_id=job.id) }}" class="btn-secondary">
+                    <i class="fa-solid fa-users-viewfinder"></i> Manage Candidates
+                </a>
+                {% endif %}
+            </div>
+        </div>
+
+        <div
+            style="line-height: 1.8; color: var(--text-primary); font-size: 1.05rem; white-space: pre-wrap; margin-bottom: 3rem;">
+            {{ job.description }}
+        </div>
+
+        <div class="job-actions-sticky"
+            style="background: var(--bg-card); padding: 1.5rem; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; border-radius: var(--radius);">
+            <div>
+                <a href="{{ url_for('core.job_board') }}" class="btn-secondary">
+                    <i class="fa-solid fa-arrow-left"></i> Back to Jobs
+                </a>
+            </div>
+
+            <div style="width: 300px;">
+                {% if current_user.is_authenticated and current_user.role == 'candidate' and current_user.resume_path %}
+                {% if is_applied %}
+                <form action="{{ url_for('core.withdraw_application', job_id=job.id) }}" method="POST" class="w-100"
+                    onsubmit="return confirm('Are you sure you want to withdraw your application?');">
+                    <button type="submit" class="btn-danger w-100 justify-center">
+                        <i class="fa-solid fa-ban" style="margin-right: 0.5rem;"></i> Withdraw Application
+                    </button>
+                </form>
+                {% else %}
+                <form action="{{ url_for('core.easy_apply', job_id=job.id) }}" method="POST" class="w-100">
+                    <button type="submit" class="btn-primary w-100 justify-center"
+                        style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border: none; padding: 1rem;">
+                        <i class="fa-solid fa-bolt" style="margin-right: 0.5rem;"></i> Easy Apply Now
+                    </button>
+                </form>
+                {% endif %}
+                {% elif current_user.is_authenticated and current_user.role == 'candidate' %}
+                <a href="/profile" class="btn-secondary w-100 justify-center">
+                    <i class="fa-solid fa-upload" style="margin-right: 0.5rem;"></i> Upload Resume to Apply
+                </a>
+                {% elif not current_user.is_authenticated %}
+                <a href="{{ url_for('auth.login') }}" class="btn-primary w-100 justify-center">
+                    Login to Apply
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

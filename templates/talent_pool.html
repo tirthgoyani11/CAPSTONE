@@ -78,10 +78,17 @@
                         class="custom-checkbox candidate-checkbox">
                 </td>
                 <td>
-                    <div style="font-weight: 500;">{{ cand.filename }}</div>
-                    {% if cand.email %}
-                    <div style="font-size: 0.8rem; color: var(--text-muted);">{{ cand.email }}</div>
-                    {% endif %}
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <div class="avatar sm">
+                            {{ (cand.name or cand.filename)[:2] }}
+                        </div>
+                        <div>
+                            <div style="font-weight: 500;">{{ cand.name if cand.name else cand.filename }}</div>
+                            {% if cand.email %}
+                            <div style="font-size: 0.8rem; color: var(--text-muted);">{{ cand.email }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
                 </td>
                 <td>
                     <span class="role-tag">{{ cand.job_role if cand.job_role else 'General' }}</span>

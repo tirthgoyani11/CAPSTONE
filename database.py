@@ -212,6 +212,11 @@ def init_db():
         except sqlite3.OperationalError:
             pass
             
+        try:
+            c.execute("ALTER TABLE users ADD COLUMN full_text TEXT")
+        except sqlite3.OperationalError:
+            pass
+            
         conn.commit()
         conn.close()
         print("Initialized SQLite Database.")

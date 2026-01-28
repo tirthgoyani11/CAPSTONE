@@ -65,28 +65,68 @@
                     <i class="fa-solid fa-file-pdf text-red"></i> {{ user.resume_path }}
                 </div>
             </div>
-
-            <div style="margin-bottom: 1.5rem;">
-                <label
-                    style="display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem;">Detected
-                    Skills (Edit to fix)</label>
-                <textarea name="skills" rows="4"
-                    style="width: 100%; padding: 0.8rem; background: var(--bg-dashboard); border: 1px solid var(--border); color: var(--text-primary); border-radius: var(--radius);">{{ user.skills | replace('"', '') | replace('[', '') | replace(']', '') }}</textarea>
-                <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">Comma separated (e.g.
-                    Python, Java, SQL)</p>
+            <div style="display: flex; align-items: flex-end;">
+                <button type="button" onclick="openProfileViewer()" class="btn-secondary"
+                    style="font-size: 0.8rem; padding: 0.4rem 0.8rem;">
+                    <i class="fa-solid fa-eye"></i> View
+                </button>
             </div>
+    </div>
 
-            <div style="margin-bottom: 1.5rem;">
-                <label
-                    style="display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem;">Years
-                    of Experience</label>
-                <input type="text" name="experience" value="{{ user.experience }}"
-                    style="width: 100%; padding: 0.8rem; background: var(--bg-dashboard); border: 1px solid var(--border); color: var(--text-primary); border-radius: var(--radius);">
+    <!-- Resume Viewer Modal (Candidate Side) -->
+    <div id="profile-viewer-modal" class="modal-backdrop hidden" style="z-index: 2000;">
+        <div class="glass-card modal-content animate-in"
+            style="width: 90%; height: 90vh; max-width: 1000px; display: flex; flex-direction: column; padding: 0;">
+            <div
+                style="padding: 1rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: var(--bg-card);">
+                <h3>My Resume</h3>
+                <button type="button" onclick="closeProfileViewer()" class="btn-icon"><i
+                        class="fa-solid fa-times"></i></button>
             </div>
+            <div style="flex: 1; overflow: hidden; background: #1e1e1e;">
+                {% if user.resume_path.lower().endswith('.pdf') %}
+                <iframe src="{{ url_for('core.uploaded_file', filename=user.resume_path) }}" width="100%" height="100%"
+                    style="border: none;"></iframe>
+                {% else %}
+                <div
+                    style="padding: 2rem; overflow-y: auto; height: 100%; color: #e2e8f0; white-space: pre-wrap; font-family: monospace;">
+                    {{ user.full_text if user.full_text else 'Preview not available. Please re-upload your resume.' }}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
 
-            <button type="submit" class="btn-primary" style="width: 100%;">
-                <i class="fa-solid fa-pen-to-square"></i> Update Details
-            </button>
+    <script>
+        function openProfileViewer() {
+            document.getElementById('profile-viewer-modal').classList.remove('hidden');
+        }
+        function closeProfileViewer() {
+            document.getElementById('profile-viewer-modal').classList.add('hidden');
+        }
+    </script>
+
+    <div style="margin-bottom: 1.5rem;">
+
+        <div style="margin-bottom: 1.5rem;">
+            <label style="display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem;">Detected
+                Skills (Edit to fix)</label>
+            <textarea name="skills" rows="4"
+                style="width: 100%; padding: 0.8rem; background: var(--bg-dashboard); border: 1px solid var(--border); color: var(--text-primary); border-radius: var(--radius);">{{ user.skills | replace('"', '') | replace('[', '') | replace(']', '') }}</textarea>
+            <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">Comma separated (e.g.
+                Python, Java, SQL)</p>
+        </div>
+
+        <div style="margin-bottom: 1.5rem;">
+            <label style="display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem;">Years
+                of Experience</label>
+            <input type="text" name="experience" value="{{ user.experience }}"
+                style="width: 100%; padding: 0.8rem; background: var(--bg-dashboard); border: 1px solid var(--border); color: var(--text-primary); border-radius: var(--radius);">
+        </div>
+
+        <button type="submit" class="btn-primary" style="width: 100%;">
+            <i class="fa-solid fa-pen-to-square"></i> Update Details
+        </button>
         </form>
 
         {% else %}

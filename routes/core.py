@@ -44,8 +44,54 @@ def create_job():
 def job_board():
     conn = database.get_db_connection()
     jobs = conn.execute('SELECT * FROM jobs ORDER BY created_at DESC').fetchall()
+    
+    applied_jobs = []
+    if current_user.is_authenticated and current_user.role == 'candidate':
+        # Get list of job_ids user applied to
+        rows = conn.execute('SELECT job_id FROM candidates WHERE user_id = ?', (current_user.id,)).fetchall()
+        applied_jobs = [row['job_id'] for row in rows]
+        
     conn.close()
-    return render_template('job_board.html', jobs=jobs)
+    return render_template('job_board.html', jobs=jobs, applied_jobs=applied_jobs)
+
+@bp.route('/jobs/<int:job_id>/view')
+def view_job(job_id):
+    conn = database.get_db_connection()
+    job = conn.execute('SELECT * FROM jobs WHERE id = ?', (job_id,)).fetchone()
+    if not job:
+        conn.close()
+        return "Job not found", 404
+        
+    is_applied = False
+    if current_user.is_authenticated and current_user.role == 'candidate':
+        exists = conn.execute('SELECT id FROM candidates WHERE user_id = ? AND job_id = ?', 
+                             (current_user.id, job_id)).fetchone()
+        if exists:
+            is_applied = True
+            
+    conn.close()
+    return render_template('public_job_detail.html', job=job, is_applied=is_applied)
+
+@bp.route('/jobs/<int:job_id>/withdraw', methods=['POST'])
+@login_required
+def withdraw_application(job_id):
+    if current_user.role != 'candidate':
+         flash('Only candidates can withdraw applications.', 'error')
+         return redirect(url_for('core.job_board'))
+
+    conn = database.get_db_connection()
+    # Check if exists (optional but good for feedback)
+    exists = conn.execute('SELECT id FROM candidates WHERE user_id = ? AND job_id = ?', (current_user.id, job_id)).fetchone()
+    
+    if exists:
+        conn.execute('DELETE FROM candidates WHERE user_id = ? AND job_id = ?', (current_user.id, job_id))
+        conn.commit()
+        flash('Application withdrawn successfully.', 'info')
+    else:
+        flash('Application not found.', 'warning')
+        
+    conn.close()
+    return redirect(url_for('core.job_board'))
 
 @bp.route('/')
 @login_required # Require login for the main dashboard for now
@@ -349,16 +395,15 @@ def profile():
                 SET resume_path = ?, 
                     skills = ?, 
                     experience = ?, 
-                    education = ?
+                    education = ?,
+                    full_text = ?
                 WHERE id = ?
             ''', (
                 filename, 
-                json.dumps(list(set(cv_text.split()))), # Placeholder for "All extracted words" is too big. 
-                # Let's store raw text and maybe simple extraction.
-                # Ideally we want the engine to give us a structured profile.
-                # For this MVP phase, let's just store the path and text, and maybe heuristic info.
+                json.dumps(list(set(cv_text.split()))), # Placeholder
                 str(personal_info.get('total_years', 0)) + " Years",
                 json.dumps(personal_info.get('education', [])),
+                cv_text,
                 current_user.id
             ))
             conn.commit()
@@ -398,66 +443,75 @@ def update_profile():
 @login_required
 def easy_apply(job_id):
     if current_user.role != 'candidate':
-        return jsonify({'error': 'Only candidates can apply'}), 403
+        flash('Only candidates can apply.', 'error')
+        return redirect(url_for('core.job_board'))
         
     conn = database.get_db_connection()
     user = conn.execute('SELECT * FROM users WHERE id = ?', (current_user.id,)).fetchone()
     
     if not user['resume_path']:
         conn.close()
-        return jsonify({'error': 'No resume found. Please complete your profile.'}), 400
+        flash('No resume found. Please complete your profile first.', 'warning')
+        return redirect(url_for('core.profile'))
         
     # Check if already applied
     existing = conn.execute('SELECT id FROM candidates WHERE user_id = ? AND job_id = ?', 
                            (current_user.id, job_id)).fetchone()
     if existing:
         conn.close()
-        return jsonify({'error': 'You have already applied to this job.'}), 400
+        flash('You have already applied to this job.', 'info')
+        return redirect(url_for('core.job_board'))
 
-    # ... Reuse scoring logic ...
-    # For MVP, we'll just insert a dummy record or trigger the engine.
-    # To do it properly, we need to re-run the engine on the saved CV text.
-    # But we didn't save the text in 'users' table, only snippets.
-    # We'll just read the file again.
-    
     cv_path = os.path.join(current_app.config['UPLOAD_FOLDER'], user['resume_path'])
     if not os.path.exists(cv_path):
          conn.close()
-         return jsonify({'error': 'Resume file missing on server.'}), 500
+         flash('Resume file missing on server. Please re-upload.', 'error')
+         return redirect(url_for('core.profile'))
 
-    # Parse & Score
-    cv_text = extract_text(cv_path)
-    job = conn.execute('SELECT * FROM jobs WHERE id = ?', (job_id,)).fetchone()
+    try:
+        # Parse & Score
+        cv_text = extract_text(cv_path)
+        job = conn.execute('SELECT * FROM jobs WHERE id = ?', (job_id,)).fetchone()
+        
+        # Insert full_text into users if missing (Quick fix/Sync)
+        # Verify if user wants this logic here? It matches our logic update for profile.
+        # But for now, just score.
+        
+        # Generate scores
+        weights = {'semantic': 0.6, 'skills': 0.3, 'experience': 0.1} # Sync with default in scoring_engine
+        score_data = engine.score_cv(cv_text, job['description'], weights)
+        analysis = score_data['analysis']
+        
+        # Insert Candidate
+        conn.execute('''
+            INSERT INTO candidates (
+                job_id, name, email, phone, filename, 
+                skills_score, experience_score, semantic_score, total_score, 
+                missing_skills, created_at, user_id, status, full_text
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?, 'Applied', ?)
+        ''', (
+            job_id, 
+            user['name'], 
+            user['email'], 
+            analysis['personal_info'].get('phone', 'N/A'), 
+            user['resume_path'], # Filename
+            score_data['breakdown']['skills_match'],
+            score_data['breakdown']['experience_match'],
+            score_data['breakdown']['semantic_match'],
+            score_data['total_score'],
+            json.dumps(analysis['missing']),
+            current_user.id,
+            cv_text # Also save full_text to candidates table for Recruiter view!
+        ))
+        conn.commit()
+    except Exception as e:
+        print(f"Error in easy_apply: {e}")
+        flash(f"Error applying: {str(e)}", 'error')
+    finally:
+        conn.close()
     
-    # Generate scores
-    weights = {'semantic': 0.6, 'skills': 0.3, 'experience': 0.1} # Sync with default in scoring_engine
-    score_data = engine.score_cv(cv_text, job['description'], weights)
-    analysis = score_data['analysis']
-    
-    # Insert Candidate
-    conn.execute('''
-        INSERT INTO candidates (
-            job_id, name, email, phone, filename, 
-            skills_score, experience_score, semantic_score, total_score, 
-            missing_skills, created_at, user_id, status
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?, 'Applied')
-    ''', (
-        job_id, 
-        user['name'], 
-        user['email'], 
-        analysis['personal_info'].get('phone', 'N/A'), 
-        user['resume_path'], # Filename
-        score_data['breakdown']['skills_match'],
-        score_data['breakdown']['experience_match'],
-        score_data['breakdown']['semantic_match'],
-        score_data['total_score'],
-        json.dumps(analysis['missing']),
-        current_user.id
-    ))
-    conn.commit()
-    conn.close()
-    
-    return jsonify({'message': 'Application submitted successfully!', 'redirect': url_for('core.dashboard')})
+    flash('Application submitted successfully!', 'success')
+    return redirect(url_for('core.job_board'))
     
 # --- Offer Management Routes ---
 

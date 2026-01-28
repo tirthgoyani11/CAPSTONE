@@ -84,6 +84,10 @@
                     <i class="fa-solid fa-chart-pie"></i>
                     <span>Analytics</span>
                 </a>
+                <a href="/interviews" class="nav-item {% if request.path == '/interviews' %}active{% endif %}">
+                    <i class="fa-solid fa-calendar-check"></i>
+                    <span>Interviews</span>
+                </a>
                 {% endif %}
 
                 {% if current_user.is_authenticated and current_user.role == 'candidate' %}

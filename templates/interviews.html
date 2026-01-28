@@ -1,0 +1,136 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="dashboard-header" style="margin-bottom: 2rem;">
+    <div>
+        <h1 class="text-gradient">Interview Schedule</h1>
+        <p class="dashboard-subtitle">Manage upcoming interviews and meetings</p>
+    </div>
+    <button onclick="openScheduleModal()" class="btn-primary">
+        <i class="fa-solid fa-plus"></i> Schedule New
+    </button>
+</div>
+
+<!-- Interviews List -->
+<div class="glass-card" style="padding: 0;">
+    {% if interviews %}
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Date & Time</th>
+                    <th>Candidate</th>
+                    <th>Interviewer</th>
+                    <th>Location</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for interview in interviews %}
+                <tr>
+                    <td>
+                        <div style="font-weight: 500;">
+                            {{ interview.start_time.strftime('%b %d, %Y') }}
+                        </div>
+                        <div style="font-size: 0.85rem; color: var(--text-muted);">
+                            {{ interview.start_time.strftime('%I:%M %p') }}
+                        </div>
+                    </td>
+                    <td>
+                        <div style="font-weight: 500;">{{ interview.candidate_name or interview.candidate_filename }}
+                        </div>
+                        <div style="font-size: 0.8rem; color: var(--text-muted);">{{ interview.job_title }}</div>
+                    </td>
+                    <td>
+                        {{ interview.interviewer_name }}
+                    </td>
+                    <td>
+                        <i class="fa-solid fa-location-dot text-info"></i> {{ interview.location }}
+                    </td>
+                    <td>
+                        <span class="status-pill status-{{ interview.status|lower }}">{{ interview.status }}</span>
+                    </td>
+                    <td>
+                        <form action="{{ url_for('interviews.delete', id=interview.id) }}" method="POST"
+                            onsubmit="return confirm('Cancel this interview?');" style="display:inline;">
+                            <button type="submit" class="btn-icon text-danger" title="Cancel">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div style="padding: 3rem; text-align: center; color: var(--text-muted);">
+        <i class="fa-solid fa-calendar-xmark fa-3x" style="margin-bottom: 1rem; opacity: 0.5;"></i>
+        <p>No interviews scheduled yet.</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Schedule Modal -->
+<div id="schedule-modal" class="modal-backdrop hidden" style="z-index: 2000;">
+    <div class="glass-card modal-content animate-in"
+        style="max-width: 500px; width: 90%; margin: 2rem auto; padding: 2rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <h3>Schedule Interview</h3>
+            <button onclick="closeScheduleModal()" class="btn-icon"><i class="fa-solid fa-times"></i></button>
+        </div>
+
+        <form action="{{ url_for('interviews.schedule') }}" method="POST">
+            <div style="margin-bottom: 1rem;">
+                <label class="info-label" style="display: block; margin-bottom: 0.5rem;">Candidate</label>
+                <select name="candidate_id" class="search-input" style="width: 100%;" required>
+                    <option value="">Select Candidate...</option>
+                    {% for cand in candidates %}
+                    <option value="{{ cand.id }}">{{ cand.name or cand.filename }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div style="margin-bottom: 1rem;">
+                <label class="info-label" style="display: block; margin-bottom: 0.5rem;">Date & Time</label>
+                <input type="datetime-local" name="start_time" class="search-input" style="width: 100%;" required>
+            </div>
+
+            <div style="margin-bottom: 1rem;">
+                <label class="info-label" style="display: block; margin-bottom: 0.5rem;">Location / Link</label>
+                <input type="text" name="location" class="search-input" style="width: 100%;"
+                    placeholder="e.g. Google Meet Link or Office Room 302">
+            </div>
+
+            <div style="margin-bottom: 1.5rem;">
+                <label class="info-label" style="display: block; margin-bottom: 0.5rem;">Notes</label>
+                <textarea name="notes" class="search-input" style="width: 100%; min-height: 80px;"
+                    placeholder="Agenda or topics..."></textarea>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 1rem;">
+                <button type="button" onclick="closeScheduleModal()" class="btn-secondary">Cancel</button>
+                <button type="submit" class="btn-primary">Schedule</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openScheduleModal() {
+        document.getElementById('schedule-modal').classList.remove('hidden');
+    }
+
+    function closeScheduleModal() {
+        document.getElementById('schedule-modal').classList.add('hidden');
+    }
+
+    // Close on backdrop click
+    document.getElementById('schedule-modal').addEventListener('click', function (e) {
+        if (e.target === this) {
+            closeScheduleModal();
+        }
+    });
+</script>
+{% endblock %}

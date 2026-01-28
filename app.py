@@ -49,6 +49,9 @@ app.register_blueprint(settings.bp)
 from routes import export_routes
 app.register_blueprint(export_routes.bp)
 
+from routes import interviews
+app.register_blueprint(interviews.bp)
+
 # Global error handlers or context processors can go here
 
 if __name__ == '__main__':
