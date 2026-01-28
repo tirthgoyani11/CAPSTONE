@@ -68,6 +68,76 @@
     .edit-overlay.active {
         display: block;
     }
+
+    /* Activity Timeline */
+    .activity-timeline {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        margin-top: 1rem;
+        max-height: 300px;
+        overflow-y: auto;
+    }
+
+    .activity-item {
+        display: flex;
+        gap: 1rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .activity-item:last-child {
+        border-bottom: none;
+    }
+
+    .activity-icon {
+        width: 32px;
+        height: 32px;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    .activity-content {
+        flex: 1;
+    }
+
+    .activity-header {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.8rem;
+        margin-bottom: 0.25rem;
+    }
+
+    .activity-user {
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+
+    .activity-date {
+        color: var(--text-muted);
+    }
+
+    .activity-text {
+        font-size: 0.9rem;
+        color: var(--text-secondary);
+    }
+
+    /* PDF Viewer */
+    .pdf-viewer-container {
+        display: none;
+        height: 600px;
+        background: #1e1e1e;
+        border-radius: var(--radius);
+        margin-top: 1.5rem;
+    }
+
+    .pdf-viewer-container.active {
+        display: block;
+    }
 </style>
 
 <div class="modal-header glass-effect">
@@ -86,7 +156,7 @@
                 </h2>
                 <button onclick="toggleEditMode()" class="btn-secondary"
                     style="padding: 0.25rem 0.75rem; font-size: 0.75rem; height: auto;">
-                    <i class="fa-solid fa-pen"></i> Edit
+                    <i class="fa-solid fa-pen"></i> Edit Detail
                 </button>
             </div>
 
@@ -99,7 +169,7 @@
                 <div style="height: 4px; width: 4px; background: var(--text-muted); border-radius: 50%; opacity: 0.5;">
                 </div>
 
-                <a href="{{ url_for('core.uploaded_file', filename=candidate.filename) }}" target="_blank"
+                <a href="#" onclick="togglePdfViewer(event)"
                     style="color: var(--primary); text-decoration: none; font-size: 0.85rem; display: flex; align-items: center; gap: 0.35rem; transition: opacity 0.2s;">
                     <i class="fa-solid fa-file-pdf"></i> View Resume
                 </a>
@@ -119,7 +189,7 @@
 
 <!-- Edit Form (Toggled) -->
 <div id="edit-form-container" class="edit-overlay">
-    <form action="/talent_pool/udpate/{{ candidate.id }}" method="POST"
+    <form action="/talent_pool/update/{{ candidate.id }}" method="POST"
         style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; align-items: end;">
         <div>
             <label class="info-label" style="display: block; margin-bottom: 0.4rem;">Full Name</label>
@@ -147,6 +217,25 @@
         data-experience="{{ candidate.experience_score }}" data-total="{{ candidate.total_score }}"
         style="display: none;"></div>
 
+    <!-- PDF Viewer -->
+    <div id="pdf-viewer" class="pdf-viewer-container glass-card">
+        <div
+            style="padding: 0.5rem; background: rgba(0,0,0,0.2); display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 0.9rem; color: #fff; padding-left: 1rem;">{{ candidate.filename }}</span>
+            <button onclick="togglePdfViewer()" class="btn-secondary" style="padding: 0.25rem 0.5rem;"><i
+                    class="fa-solid fa-xmark"></i> Close</button>
+        </div>
+        {% if candidate.filename.lower().endswith('.pdf') %}
+        <iframe src="{{ url_for('core.uploaded_file', filename=candidate.filename) }}" width="100%" height="93%"
+            style="border: none;"></iframe>
+        {% else %}
+        <div
+            style="padding: 1.5rem; overflow-y: auto; height: 93%; color: var(--text-secondary); white-space: pre-wrap; font-family: monospace; font-size: 0.9rem;">
+            {{ candidate.full_text }}
+        </div>
+        {% endif %}
+    </div>
+
     <!-- UPPER SECTION: Stats & Info -->
     <div class="modal-grid animate-in" style="margin-bottom: 2rem;">
 
@@ -171,9 +260,11 @@
                 <div class="info-row">
                     <span class="info-label">Email Address</span>
                     <span class="info-value">
-                        {% if analysis.personal_info and analysis.personal_info.email %}
-                        {{ analysis.personal_info.email }}
+                        {% if candidate.email %}
+                        {{ candidate.email }}
                         <i class="fa-solid fa-check-circle text-green" title="Verified"></i>
+                        {% elif analysis.personal_info and analysis.personal_info.email %}
+                        {{ analysis.personal_info.email }}
                         {% else %}
                         <span class="text-muted">Not Found</span>
                         {% endif %}
@@ -183,7 +274,9 @@
                 <div class="info-row">
                     <span class="info-label">Phone Number</span>
                     <span class="info-value">
-                        {% if analysis.personal_info and analysis.personal_info.phone %}
+                        {% if candidate.phone %}
+                        {{ candidate.phone }}
+                        {% elif analysis.personal_info and analysis.personal_info.phone %}
                         {{ analysis.personal_info.phone }}
                         {% else %}
                         <span class="text-muted">Not Found</span>
@@ -209,7 +302,7 @@
             <!-- Score Bars -->
             <div class="glass-card" style="padding: 1.5rem;">
                 <h4 style="font-size: 0.95rem; margin-bottom: 1rem;">Scoring Breakdown</h4>
-
+                <!-- ... existing score bars ... -->
                 <div style="margin-bottom: 1rem;">
                     <div
                         style="display: flex; justify-content: space-between; margin-bottom: 0.4rem; font-size: 0.85rem;">
@@ -287,6 +380,38 @@
                 </div>
             </div>
             {% endif %}
+
+            <!-- Activity Timeline -->
+            <div class="glass-card" style="margin-top: 1.5rem; padding: 1.25rem; background: rgba(0,0,0,0.2);">
+                <h4 style="margin-bottom: 1rem;"><i class="fa-solid fa-clock-rotate-left text-primary"></i> Activity
+                    Timeline</h4>
+                <div class="activity-timeline">
+                    {% for log in activity_log %}
+                    <div class="activity-item">
+                        <div class="activity-icon">
+                            {% if log.action_type == 'status_change' %}
+                            <i class="fa-solid fa-arrow-right-arrow-left text-info" style="font-size: 0.9rem;"></i>
+                            {% elif log.action_type == 'note' %}
+                            <i class="fa-solid fa-note-sticky text-warning" style="font-size: 0.9rem;"></i>
+                            {% elif log.action_type == 'email' %}
+                            <i class="fa-solid fa-envelope text-primary" style="font-size: 0.9rem;"></i>
+                            {% else %}
+                            <i class="fa-solid fa-circle text-muted" style="font-size: 0.9rem;"></i>
+                            {% endif %}
+                        </div>
+                        <div class="activity-content">
+                            <div class="activity-header">
+                                <span class="activity-user">{{ log.user_name }}</span>
+                                <span class="activity-date" style="font-size: 0.7rem;">{{ log.created_at[:16] }}</span>
+                            </div>
+                            <div class="activity-text">{{ log.description }}</div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <p class="text-muted" style="font-size: 0.9rem; font-style: italic;">No activity recorded yet.</p>
+                    {% endfor %}
+                </div>
+            </div>
         </div>
 
         <!-- Questions & Notes -->
@@ -327,10 +452,10 @@
                 <form action="/talent_pool/note/{{ candidate.id }}" method="POST" style="margin-top: 1rem;">
                     <div style="position: relative;">
                         <textarea name="note" rows="2" placeholder="Add private recruiter notes..."
-                            style="width: 100%; padding: 0.8rem; padding-right: 2.5rem; background: var(--bg-body); border-radius: 8px; font-size: 0.9rem; resize: none;">{{ candidate.notes if candidate.notes else '' }}</textarea>
+                            style="width: 100%; padding: 0.8rem; padding-right: 2.5rem; background: var(--bg-body); border-radius: 8px; font-size: 0.9rem; resize: none;"></textarea>
                         <button type="submit"
                             style="position: absolute; right: 0.5rem; bottom: 0.5rem; background: none; border: none; color: var(--primary); cursor: pointer;">
-                            <i class="fa-solid fa-floppy-disk"></i>
+                            <i class="fa-solid fa-paper-plane"></i>
                         </button>
                     </div>
                 </form>
@@ -348,3 +473,10 @@
         </div>
     </div>
 </div>
+<script>
+    function togglePdfViewer(e) {
+        if (e) e.preventDefault();
+        const viewer = document.getElementById('pdf-viewer');
+        viewer.classList.toggle('active');
+    }
+</script>

@@ -1,47 +1,48 @@
+// === Toast Notification System ===
+window.showToast = function (type, title, message, duration = 4000) {
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+
+    const icons = {
+        success: 'fa-circle-check',
+        error: 'fa-circle-xmark',
+        warning: 'fa-triangle-exclamation',
+        info: 'fa-circle-info'
+    };
+
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.innerHTML = `
+        <i class="fa-solid ${icons[type] || icons.info} toast-icon"></i>
+        <div class="toast-content">
+            <div class="toast-title">${title}</div>
+            <div class="toast-message">${message}</div>
+        </div>
+        <button class="toast-close" onclick="this.parentElement.remove()">
+            <i class="fa-solid fa-times"></i>
+        </button>
+    `;
+
+    container.appendChild(toast);
+
+    setTimeout(() => {
+        toast.classList.add('hiding');
+        setTimeout(() => toast.remove(), 300);
+    }, duration);
+};
+
+// === Global Loader ===
+window.showLoader = function () {
+    const loader = document.getElementById('global-loader');
+    if (loader) loader.classList.remove('hidden');
+};
+
+window.hideLoader = function () {
+    const loader = document.getElementById('global-loader');
+    if (loader) loader.classList.add('hidden');
+};
+
 document.addEventListener('DOMContentLoaded', () => {
-    // === Toast Notification System ===
-    window.showToast = function (type, title, message, duration = 4000) {
-        const container = document.getElementById('toast-container');
-        if (!container) return;
-
-        const icons = {
-            success: 'fa-circle-check',
-            error: 'fa-circle-xmark',
-            warning: 'fa-triangle-exclamation',
-            info: 'fa-circle-info'
-        };
-
-        const toast = document.createElement('div');
-        toast.className = `toast ${type}`;
-        toast.innerHTML = `
-            <i class="fa-solid ${icons[type] || icons.info} toast-icon"></i>
-            <div class="toast-content">
-                <div class="toast-title">${title}</div>
-                <div class="toast-message">${message}</div>
-            </div>
-            <button class="toast-close" onclick="this.parentElement.remove()">
-                <i class="fa-solid fa-times"></i>
-            </button>
-        `;
-
-        container.appendChild(toast);
-
-        setTimeout(() => {
-            toast.classList.add('hiding');
-            setTimeout(() => toast.remove(), 300);
-        }, duration);
-    };
-
-    // === Global Loader ===
-    window.showLoader = function () {
-        const loader = document.getElementById('global-loader');
-        if (loader) loader.classList.remove('hidden');
-    };
-
-    window.hideLoader = function () {
-        const loader = document.getElementById('global-loader');
-        if (loader) loader.classList.add('hidden');
-    };
 
     // Theme Toggling Logic
     const themeBtn = document.getElementById('theme-toggle');
@@ -75,6 +76,22 @@ document.addEventListener('DOMContentLoaded', () => {
             if (text) text.textContent = 'Dark Mode';
         }
     }
+
+    // Keyboard Shortcuts
+    document.addEventListener('keydown', (e) => {
+        // Esc to close modal
+        if (e.key === 'Escape') {
+            closeModal();
+            const pdfViewer = document.getElementById('pdf-viewer');
+            if (pdfViewer) pdfViewer.classList.remove('active');
+        }
+        // '/' to focus search input
+        if (e.key === '/' && !['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) {
+            e.preventDefault();
+            const searchInput = document.querySelector('input[name="q"]');
+            if (searchInput) searchInput.focus();
+        }
+    });
 
     // Modal Logic (Existing functionality preserved)
     const modalBackdrop = document.getElementById('modal-backdrop');

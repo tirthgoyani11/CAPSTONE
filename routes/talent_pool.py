@@ -62,6 +62,32 @@ def index():
                          pipeline_stats=pipeline_stats,
                          statuses=PIPELINE_STATUSES)
 
+@bp.route('/talent_pool/activity/<int:candidate_id>')
+@login_required
+@role_required('recruiter')
+def get_activity_log(candidate_id):
+    """AJAX endpoint to getting activity log"""
+    conn = database.get_db_connection()
+    logs = conn.execute('''
+        SELECT a.*, u.name as user_name 
+        FROM activity_logs a 
+        LEFT JOIN users u ON a.user_id = u.id 
+        WHERE a.candidate_id = ? 
+        ORDER BY a.created_at DESC
+    ''', (candidate_id,)).fetchall()
+    conn.close()
+    
+    log_list = []
+    for log in logs:
+        log_list.append({
+            'user_name': log['user_name'] or 'System',
+            'action_type': log['action_type'],
+            'description': log['description'],
+            'created_at': log['created_at']
+        })
+        
+    return jsonify(log_list)
+
 @bp.route('/talent_pool/status/<int:candidate_id>', methods=['POST'])
 @login_required
 @role_required('recruiter')
@@ -74,44 +100,46 @@ def update_status(candidate_id):
         return jsonify({'error': 'Invalid status'}), 400
     
     conn = database.get_db_connection()
-    conn.execute('UPDATE candidates SET status = ? WHERE id = ?', (new_status, candidate_id))
-    conn.commit()
+    # Get old status
+    old_status = conn.execute("SELECT status FROM candidates WHERE id = ?", (candidate_id,)).fetchone()[0]
+    
+    if old_status != new_status:
+        conn.execute('UPDATE candidates SET status = ? WHERE id = ?', (new_status, candidate_id))
+        # Log activity
+        if current_user.is_authenticated:
+            user_id = current_user.id
+        else:
+            user_id = None # or system user
+
+        conn.execute('''
+            INSERT INTO activity_logs (candidate_id, user_id, action_type, description) 
+            VALUES (?, ?, 'status_change', ?)
+        ''', (candidate_id, user_id, f"Changed status from {old_status} to {new_status}"))
+        conn.commit()
+    
     conn.close()
     
     return jsonify({'success': True, 'status': new_status})
-
-@bp.route('/talent_pool/bulk_delete', methods=['POST'])
-@login_required
-@role_required('recruiter')
-def bulk_delete():
-    """AJAX endpoint to delete multiple candidates"""
-    data = request.get_json()
-    ids = data.get('ids', [])
-    
-    if not ids:
-        return jsonify({'error': 'No candidates selected'}), 400
-    
-    try:
-        conn = database.get_db_connection()
-        placeholders = ','.join('?' for _ in ids)
-        conn.execute(f'DELETE FROM candidates WHERE id IN ({placeholders})', ids)
-        conn.commit()
-        conn.close()
-        return jsonify({'success': True, 'deleted': len(ids)})
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
 
 @bp.route('/talent_pool/note/<int:candidate_id>', methods=['POST'])
 @login_required
 @role_required('recruiter')
 def add_note(candidate_id):
     note = request.form.get('note')
-    if note is not None:
-        database.add_candidate_note(candidate_id, note)
-    # Redirect back to the index
+    if note:
+        conn = database.get_db_connection()
+        # Add to notes column AND activity log
+        conn.execute('UPDATE candidates SET notes = ? WHERE id = ?', (note, candidate_id))
+        conn.execute('''
+            INSERT INTO activity_logs (candidate_id, user_id, action_type, description) 
+            VALUES (?, ?, 'note', ?)
+        ''', (candidate_id, current_user.id, note))
+        conn.commit()
+        conn.close()
+        
     return redirect(url_for('talent_pool.index'))
 
-@bp.route('/talent_pool/udpate/<int:candidate_id>', methods=['POST'])
+@bp.route('/talent_pool/update/<int:candidate_id>', methods=['POST'])
 @login_required
 @role_required('recruiter')
 def update_candidate(candidate_id):
@@ -120,11 +148,14 @@ def update_candidate(candidate_id):
     phone = request.form.get('phone')
     
     conn = database.get_db_connection()
+    # Get job_id for redirect
+    job_id = conn.execute('SELECT job_id FROM candidates WHERE id = ?', (candidate_id,)).fetchone()[0]
+    
     conn.execute('UPDATE candidates SET name = ?, email = ?, phone = ? WHERE id = ?', (name, email, phone, candidate_id))
     conn.commit()
     conn.close()
     
-    return redirect(url_for('talent_pool.index'))
+    return redirect(url_for('core.job_detail', job_id=job_id))
 
 @bp.route('/compare')
 @login_required

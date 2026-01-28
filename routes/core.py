@@ -120,7 +120,7 @@ def upload_cvs(job_id):
     job = conn.execute('SELECT * FROM jobs WHERE id = ?', (job_id,)).fetchone()
     
     cv_files = request.files.getlist('cvs')
-    weights = {'overall_similarity': 0.5, 'skills': 0.3, 'experience': 0.2}
+    weights = {'semantic': 0.5, 'skills': 0.3, 'experience': 0.2}
 
     # Identify user if logged in
     user_id = current_user.id if current_user.is_authenticated else None
@@ -134,6 +134,12 @@ def upload_cvs(job_id):
         
         try:
             cv_text = extract_text(path)
+            if not cv_text or len(cv_text.strip()) < 50:
+                print(f"Warning: Extracted text too short for {filename}")
+                # Use flash for UI feedback (handled by toast on frontend)
+                flash(f"Could not read text from {filename}. Is it an image PDF?", "error")
+                continue
+
             score_data = engine.score_cv(cv_text, job['description'], weights)
             analysis = score_data['analysis'] # Use the analysis from scoring
             
@@ -153,16 +159,20 @@ def upload_cvs(job_id):
                              analysis['personal_info'].get('email'),
                              analysis['personal_info'].get('phone')
                             ))
+            print(f"Successfully processed {filename}")
         except Exception as e:
             print(f"Error processing {filename}: {e}")
+            flash(f"Error processing {filename}: {str(e)}", "error")
+            continue
             
     conn.commit()
     conn.close()
     
+    flash("Upload process completed.", "info")
+    
     # Redirect based on role
     if current_user.is_authenticated and current_user.role == 'candidate':
         return redirect(url_for('core.dashboard'))
-        
     return redirect(url_for('core.job_detail', job_id=job_id))
 
 @bp.route('/jobs/<int:job_id>/delete', methods=['POST'])
@@ -201,7 +211,7 @@ def candidate_modal(candidate_id):
              return jsonify({'error': 'Unauthorized'}), 403
         
         job = conn.execute('SELECT * FROM jobs WHERE id = ?', (candidate['job_id'],)).fetchone()
-        conn.close()
+        # Don't close here, we need it for activity logs!
         
         # Re-run analysis for live view
         print(f"Analyzing candidate {candidate_id}...")
@@ -209,8 +219,27 @@ def candidate_modal(candidate_id):
         print(f"Analysis successful. Keys: {analysis.keys()}")
         print(f"Personal Info: {analysis.get('personal_info')}")
 
+        # Fetch Activity Log
+        try:
+            logs = conn.execute('''
+                SELECT a.*, u.name as user_name 
+                FROM activity_logs a 
+                LEFT JOIN users u ON a.user_id = u.id 
+                WHERE a.candidate_id = ? 
+                ORDER BY a.created_at DESC
+            ''', (candidate_id,)).fetchall()
+        except Exception as e:
+            print(f"Error fetching activity logs: {e}")
+            logs = []
+            
+        conn.close() # Close connection finally
+
         return jsonify({
-            'html': render_template('candidate_modal.html', candidate=candidate, analysis=analysis, job_title=job['title'])
+            'html': render_template('candidate_modal.html', 
+                                  candidate=candidate, 
+                                  analysis=analysis, 
+                                  job_title=job['title'],
+                                  activity_log=logs)
         })
     except Exception as e:
         print("CRITICAL ERROR in candidate_modal:")

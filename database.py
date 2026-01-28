@@ -69,6 +69,29 @@ def init_db():
                         user_id INTEGER REFERENCES users(id),
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     )''')
+
+        # Activity Logs Table (Postgres)
+        c.execute('''CREATE TABLE IF NOT EXISTS activity_logs (
+                        id SERIAL PRIMARY KEY,
+                        candidate_id INTEGER REFERENCES candidates(id),
+                        user_id INTEGER REFERENCES users(id),
+                        action_type TEXT,
+                        description TEXT,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )''')
+
+        # Interviews Table (Postgres)
+        c.execute('''CREATE TABLE IF NOT EXISTS interviews (
+                        id SERIAL PRIMARY KEY,
+                        candidate_id INTEGER REFERENCES candidates(id),
+                        interviewer_id INTEGER REFERENCES users(id),
+                        start_time TIMESTAMP,
+                        end_time TIMESTAMP,
+                        location TEXT,
+                        notes TEXT,
+                        status TEXT DEFAULT 'Scheduled',
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )''')
         
         conn.commit()
         conn.close()
@@ -108,6 +131,34 @@ def init_db():
                         FOREIGN KEY(job_id) REFERENCES jobs(id),
                         FOREIGN KEY(user_id) REFERENCES users(id)
                     )''')
+        
+        # Activity Logs Table
+        c.execute('''CREATE TABLE IF NOT EXISTS activity_logs (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        candidate_id INTEGER,
+                        user_id INTEGER,
+                        action_type TEXT, -- 'status_change', 'note', 'email', 'interview'
+                        description TEXT,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY(candidate_id) REFERENCES candidates(id),
+                        FOREIGN KEY(user_id) REFERENCES users(id)
+                    )''')
+
+        # Interviews Table
+        c.execute('''CREATE TABLE IF NOT EXISTS interviews (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        candidate_id INTEGER,
+                        interviewer_id INTEGER,
+                        start_time TIMESTAMP,
+                        end_time TIMESTAMP,
+                        location TEXT, -- 'Google Meet', 'Office', etc.
+                        notes TEXT,
+                        status TEXT DEFAULT 'Scheduled', -- 'Scheduled', 'Completed', 'Cancelled'
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY(candidate_id) REFERENCES candidates(id),
+                        FOREIGN KEY(interviewer_id) REFERENCES users(id)
+                    )''')
+
         # Users Table
         c.execute('''CREATE TABLE IF NOT EXISTS users (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
