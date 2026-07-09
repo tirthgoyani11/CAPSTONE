@@ -509,9 +509,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📧 Contact
 
-**Project Maintainer**: Your Name  
-**Email**: your.email@example.com  
-**Project Link**: [https://github.com/yourusername/nexgen-ats](https://github.com/yourusername/nexgen-ats)
+**Project Maintainer**: Tirth Goyani  
+**Email**: tirthgoyani123@example.com  
+**Project Link**: [https://github.com/tirthgoyani11/nexgen-ats](https://github.com/tirthgoyani11/nexgen-ats)
 
 ---
 
